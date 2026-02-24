@@ -1,0 +1,41 @@
+# Docker Compose file for TradeCalc Web Application
+# Version 3.8 is a modern and stable version of the Compose file format.
+version: '3.8'
+
+# Define the services (containers) that make up your application.
+services:
+  # The 'web' service for our Next.js application.
+  web:
+    # Specifies the build context and Dockerfile.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build arguments are passed from the .env.production file.
+      # This is a secure way to inject secrets during the build process.
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+        - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
+        - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+    
+    # Names the image that will be built.
+    image: tradecalc-web:latest
+    
+    # Provides a static name for the running container for easier management.
+    container_name: tradecalc-web-container
+    
+    # Specifies the environment file to load variables from.
+    # These variables are used for the build arguments above.
+    env_file:
+      - ./.env.production
+      
+    # Maps port 3000 on the host to port 3000 in the container.
+    ports:
+      - "3000:3000"
+      
+    # Sets the restart policy. 'unless-stopped' ensures the container
+    # restarts automatically unless explicitly stopped.
+    restart: unless-stopped
