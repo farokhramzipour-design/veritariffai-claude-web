@@ -18,7 +18,7 @@ apiClient.interceptors.request.use((config) => {
 
 // Response interceptor to handle token refresh and custom errors
 apiClient.interceptors.response.use(
-  (response) => response.data.data, // Unwrap standard envelope
+  (response) => response.data, // Return the data object directly
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
