@@ -28,27 +28,27 @@ const footerLinks = {
 };
 
 export const Footer = () => (
-  <footer className="py-16 border-t border-glass-border bg-navy-light/20">
+  <footer className="py-16 border-t border-border-default bg-bg-surface/20">
     <div className="container mx-auto px-4">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
         <div className="col-span-2 md:col-span-1">
           <Logo />
-          <p className="mt-4 text-sm text-slate-400">
+          <p className="mt-4 text-sm text-text-secondary">
             Landed cost intelligence for global trade.
           </p>
           <div className="mt-6 flex space-x-4">
-            <a href="#" className="text-slate-500 hover:text-white"><Linkedin size={18} /></a>
-            <a href="#" className="text-slate-500 hover:text-white"><Twitter size={18} /></a>
-            <a href="#" className="text-slate-500 hover:text-white"><Youtube size={18} /></a>
+            <a href="#" className="text-text-tertiary hover:text-text-primary"><Linkedin size={18} /></a>
+            <a href="#" className="text-text-tertiary hover:text-text-primary"><Twitter size={18} /></a>
+            <a href="#" className="text-text-tertiary hover:text-text-primary"><Youtube size={18} /></a>
           </div>
         </div>
         {Object.entries(footerLinks).map(([title, links]) => (
           <div key={title}>
-            <h3 className="font-semibold text-white">{title}</h3>
+            <h3 className="font-semibold text-text-primary">{title}</h3>
             <ul className="mt-4 space-y-3">
               {links.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-sm text-slate-400 hover:text-white transition-colors">
+                  <a href={link.href} className="text-sm text-text-secondary hover:text-text-primary transition-colors">
                     {link.name}
                   </a>
                 </li>
@@ -57,7 +57,7 @@ export const Footer = () => (
           </div>
         ))}
       </div>
-      <div className="mt-16 pt-8 border-t border-glass-border text-center text-sm text-slate-500">
+      <div className="mt-16 pt-8 border-t border-border-default text-center text-sm text-text-tertiary">
         <p>© {new Date().getFullYear()} TradeCalc Technologies Inc. All rights reserved.</p>
       </div>
     </div>
