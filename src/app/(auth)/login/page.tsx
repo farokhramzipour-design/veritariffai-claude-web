@@ -25,7 +25,7 @@ const LoginCard = () => {
         <p className="text-text-secondary text-center mb-8">
           Sign in to save your calculations and unlock your full results.
         </p>
-        <a 
+        <a
           href={googleLoginUrl}
           className="w-full h-12 bg-white text-black font-semibold rounded-md flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
         >

@@ -1,11 +1,13 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/ui/Logo';
 import { ThemeToggler } from '@/components/ThemeToggler';
 import { Menu, X } from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/authStore';
+import Link from 'next/link';
 
-const MobileMenu = ({ onClose }: { onClose: () => void }) => (
+const MobileMenu = ({ onClose, isAuthenticated }: { onClose: () => void, isAuthenticated: boolean }) => (
   <motion.div
     className="fixed inset-0 z-40 bg-bg-canvas flex flex-col items-center justify-center"
     initial={{ opacity: 0, y: -20 }}
@@ -14,16 +16,24 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => (
     transition={{ duration: 0.3 }}
   >
     <nav className="flex flex-col items-center gap-8">
-      <a href="#" onClick={onClose} className="text-xl text-text-primary">Features</a>
-      <a href="#" onClick={onClose} className="text-xl text-text-primary">Pricing</a>
-      <a href="#" onClick={onClose} className="text-xl text-text-primary">API</a>
-      <a href="/login" onClick={onClose} className="text-xl text-text-primary">Sign In</a>
+      <Link href="#" onClick={onClose} className="text-xl text-text-primary">Features</Link>
+      <Link href="#" onClick={onClose} className="text-xl text-text-primary">Pricing</Link>
+      {isAuthenticated ? (
+        <Link href="/dashboard" onClick={onClose} className="text-xl text-text-primary">Dashboard</Link>
+      ) : (
+        <Link href="/login" onClick={onClose} className="text-xl text-text-primary">Sign In</Link>
+      )}
     </nav>
   </motion.div>
 );
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, checkAuth, isLoading } = useAuthStore();
+  
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <>
@@ -36,16 +46,25 @@ export const Header = () => {
         <div className="container mx-auto px-4 h-16 flex justify-between items-center">
           <Logo />
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Features</a>
-            <a href="#" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Pricing</a>
-            <a href="#" className="text-sm text-text-secondary hover:text-text-primary transition-colors">API</a>
+            <Link href="#" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Features</Link>
+            <Link href="#" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Pricing</Link>
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggler />
-            <a href="/login" className="hidden sm:inline-block px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Sign In</a>
-            <button className="hidden sm:inline-block px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
-              Start Free
-            </button>
+            {!isLoading && (
+              isAuthenticated ? (
+                <Link href="/dashboard" className="px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="hidden sm:inline-block px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Sign In</Link>
+                  <Link href="/login" className="hidden sm:inline-block px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
+                    Start Free
+                  </Link>
+                </>
+              )
+            )}
             <button className="md:hidden p-2 text-text-primary" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -53,7 +72,7 @@ export const Header = () => {
         </div>
       </motion.header>
       <AnimatePresence>
-        {isMenuOpen && <MobileMenu onClose={() => setIsMenuOpen(false)} />}
+        {isMenuOpen && <MobileMenu onClose={() => setIsMenuOpen(false)} isAuthenticated={isAuthenticated} />}
       </AnimatePresence>
     </>
   );

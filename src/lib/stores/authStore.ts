@@ -1,4 +1,5 @@
 import create from 'zustand';
+import { usersApi } from './api/users';
 
 // This is a placeholder. You'll need to define the User type based on your API.
 interface User {
@@ -13,54 +14,48 @@ interface AuthState {
   accessToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (googleIdToken: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshToken: () => Promise<void>;
-  setUser: (user: User) => void;
+  setToken: (token: string) => Promise<void>;
+  checkAuth: () => Promise<void>;
+  logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
   isLoading: true,
   isAuthenticated: false,
 
-  login: async (googleIdToken) => {
+  setToken: async (token: string) => {
     set({ isLoading: true });
     try {
-      // const response = await fetch('/api/v1/auth/google', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ token: googleIdToken }),
-      // });
-      // const { access_token, user } = await response.json();
-      // sessionStorage.setItem('access_token', access_token);
-      
-      // Mock implementation for now
-      const user: User = { id: '1', email: 'test@example.com', name: 'Test User', plan: 'FREE' };
-      const accessToken = 'mock_access_token';
-      sessionStorage.setItem('access_token', accessToken);
-
-      set({ user, accessToken, isAuthenticated: true, isLoading: false });
+      sessionStorage.setItem('auth_token', token);
+      set({ accessToken: token });
+      const user = await usersApi.getMe();
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Failed to fetch user with new token", error);
+      get().logout();
+    }
+  },
+
+  checkAuth: async () => {
+    try {
+      const token = sessionStorage.getItem('auth_token');
+      if (token) {
+        set({ accessToken: token });
+        const user = await usersApi.getMe();
+        set({ user, isAuthenticated: true });
+      }
+    } catch (error) {
+      console.error("Token validation failed", error);
+      get().logout();
+    } finally {
       set({ isLoading: false });
     }
   },
 
-  logout: async () => {
-    set({ isLoading: true });
-    // await fetch('/api/v1/auth/session', { method: 'DELETE' });
-    sessionStorage.removeItem('access_token');
+  logout: () => {
+    sessionStorage.removeItem('auth_token');
     set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
-  },
-
-  refreshToken: async () => {
-    // Implementation for refreshing the token would go here.
-    // This would typically involve making a request to a refresh endpoint.
-  },
-
-  setUser: (user) => {
-    set({ user });
   },
 }));

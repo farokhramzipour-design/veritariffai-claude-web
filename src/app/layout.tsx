@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Syne, DM_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { TokenHandler } from "@/components/TokenHandler";
+import { Suspense } from "react";
 import "../styles/globals.css";
 
 const syne = Syne({
@@ -38,6 +40,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Suspense fallback={null}>
+            <TokenHandler />
+          </Suspense>
           {children}
         </ThemeProvider>
       </body>
