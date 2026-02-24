@@ -2,6 +2,32 @@ import create from 'zustand';
 import { usersApi } from '../api/users';
 import type { User } from '@/types/user';
 
+// Helper functions for cookie management
+const setCookie = (name: string, value: string, days: number) => {
+  let expires = "";
+  if (days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    expires = "; expires=" + date.toUTCString();
+  }
+  document.cookie = name + "=" + (value || "") + expires + "; path=/";
+};
+
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const eraseCookie = (name: string) => {
+  document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+};
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -21,38 +47,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setToken: async (token: string) => {
     set({ isLoading: true });
     try {
-      // 1. Fetch user data with the new token immediately
       const user = await usersApi.getMe(token);
-      
-      // 2. If successful, update the state and sessionStorage
-      sessionStorage.setItem('auth_token', token);
+      setCookie('auth_token', token, 7); // Store token in a cookie for 7 days
       set({ user, accessToken: token, isAuthenticated: true, isLoading: false });
     } catch (error) {
       console.error("Failed to fetch user with new token", error);
-      get().logout(); // This will clear any invalid state
+      get().logout();
     }
   },
 
   checkAuth: async () => {
     try {
-      const token = sessionStorage.getItem('auth_token');
+      const token = getCookie('auth_token');
       if (token) {
-        // 1. Fetch user data with the stored token to validate it
         const user = await usersApi.getMe(token);
-        
-        // 2. If successful, update the state
         set({ user, accessToken: token, isAuthenticated: true });
       }
     } catch (error) {
       console.error("Stored token is invalid", error);
-      get().logout(); // Clear the invalid token
+      get().logout();
     } finally {
       set({ isLoading: false });
     }
   },
 
   logout: () => {
-    sessionStorage.removeItem('auth_token');
+    eraseCookie('auth_token');
     set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
   },
 }));

@@ -6,13 +6,13 @@ import { TransparencySection } from '@/components/landing-v2/TransparencySection
 import { Testimonials } from '@/components/landing-v2/Testimonials';
 import { Pricing } from '@/components/landing-v2/Pricing';
 import { FinalCta } from '@/components/landing-v2/FinalCta';
-import { Header } from '@/components/landing-v2/Header';
+import HeaderWrapper from '@/components/landing-v2/HeaderWrapper';
 import { Footer } from '@/components/landing-v2/Footer';
 
 export default function LandingPageV2() {
   return (
     <div className="relative overflow-x-hidden">
-      <Header />
+      <HeaderWrapper />
       <main>
         <HeroSection />
         <LiveCalculatorPreview />

@@ -1,10 +1,9 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/ui/Logo';
 import { ThemeToggler } from '@/components/ThemeToggler';
 import { Menu, X } from 'lucide-react';
-import { useAuthStore } from '@/lib/stores/authStore';
 import Link from 'next/link';
 
 const MobileMenu = ({ onClose, isAuthenticated }: { onClose: () => void, isAuthenticated: boolean }) => (
@@ -27,13 +26,8 @@ const MobileMenu = ({ onClose, isAuthenticated }: { onClose: () => void, isAuthe
   </motion.div>
 );
 
-export const Header = () => {
+export const Header = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, checkAuth, isLoading } = useAuthStore();
-  
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
 
   return (
     <>
@@ -51,19 +45,17 @@ export const Header = () => {
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggler />
-            {!isLoading && (
-              isAuthenticated ? (
-                <Link href="/dashboard" className="px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
-                  Dashboard
+            {isAuthenticated ? (
+              <Link href="/dashboard" className="px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="hidden sm:inline-block px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Sign In</Link>
+                <Link href="/login" className="hidden sm:inline-block px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
+                  Start Free
                 </Link>
-              ) : (
-                <>
-                  <Link href="/login" className="hidden sm:inline-block px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors">Sign In</Link>
-                  <Link href="/login" className="hidden sm:inline-block px-4 py-1.5 text-sm font-semibold rounded-md bg-brand-primary text-white hover:bg-brand-hover transition-colors">
-                    Start Free
-                  </Link>
-                </>
-              )
+              </>
             )}
             <button className="md:hidden p-2 text-text-primary" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
