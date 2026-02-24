@@ -28,13 +28,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setToken: async (token: string) => {
     set({ isLoading: true });
     try {
+      // 1. Fetch user data with the new token immediately
+      const user = await usersApi.getMe(token);
+      
+      // 2. If successful, update the state and sessionStorage
       sessionStorage.setItem('auth_token', token);
-      set({ accessToken: token });
-      const user = await usersApi.getMe();
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({ user, accessToken: token, isAuthenticated: true, isLoading: false });
     } catch (error) {
       console.error("Failed to fetch user with new token", error);
-      get().logout();
+      get().logout(); // This will clear any invalid state
     }
   },
 
@@ -42,13 +44,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = sessionStorage.getItem('auth_token');
       if (token) {
-        set({ accessToken: token });
-        const user = await usersApi.getMe();
-        set({ user, isAuthenticated: true });
+        // 1. Fetch user data with the stored token to validate it
+        const user = await usersApi.getMe(token);
+        
+        // 2. If successful, update the state
+        set({ user, accessToken: token, isAuthenticated: true });
       }
     } catch (error) {
-      console.error("Token validation failed", error);
-      get().logout();
+      console.error("Stored token is invalid", error);
+      get().logout(); // Clear the invalid token
     } finally {
       set({ isLoading: false });
     }
