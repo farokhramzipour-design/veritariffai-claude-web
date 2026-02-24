@@ -1,5 +1,5 @@
 import create from 'zustand';
-import { usersApi } from './api/users';
+import { usersApi } from '../api/users';
 
 // This is a placeholder. You'll need to define the User type based on your API.
 interface User {
