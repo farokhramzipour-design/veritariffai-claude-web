@@ -228,6 +228,7 @@ Two-column feature comparison table with a glow card highlighting Pro.
 | Basic Ad Valorem Duty | ✅ | ✅ |
 | Standard VAT (20% UK) | ✅ | ✅ |
 | Single HS line | ✅ | ✅ |
+| [Export Calculator Dashboard](./export-calculator-dashboard.md) | ✅ | ✅ |
 | Customs Valuation Engine | — | ✅ |
 | Anti-Dumping + Safeguard Duties | — | ✅ |
 | Tariff Quota Logic | — | ✅ |
