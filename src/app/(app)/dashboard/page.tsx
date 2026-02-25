@@ -1,3 +1,7 @@
+"use client";
+
+import Link from 'next/link';
+
 const StatCard = ({ title, value, subtitle }: { title: string, value: string, subtitle: string }) => (
   <div className="bg-bg-surface p-6 rounded-lg border border-border-default">
     <p className="text-sm text-text-secondary">{title}</p>
@@ -26,9 +30,12 @@ export default function DashboardPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold font-display">Welcome back, Jane</h1>
         <div className="flex items-center gap-4">
-          <button className="px-4 py-2 font-semibold rounded-md bg-brand-primary text-bg-base">
+          <Link 
+            href="/calculator"
+            className="px-4 py-2 font-semibold rounded-md bg-brand-primary text-bg-base"
+          >
             + New Calculation
-          </button>
+          </Link>
           <span className="text-sm font-semibold">Plan: PRO</span>
         </div>
       </div>
