@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Topbar from './Topbar';
 import Sidebar from './Sidebar';
-import CalculatorPanel from './CalculatorPanel';
-import ResultsPanel from './ResultsPanel';
+import { CalculatorPanel } from './CalculatorPanel';
+import { ResultsPanel } from './ResultsPanel';
 import AIChatWidget from './AIChatWidget';
 
 const Dashboard = () => {
