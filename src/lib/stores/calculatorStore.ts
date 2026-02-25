@@ -3,8 +3,20 @@ import { persist } from 'zustand/middleware';
 
 // Placeholder types - these would be defined in a types directory
 type MoneyInput = { amount: string; currency: string; };
-type ShipmentLineInput = { hs_code: string; description: string; };
-type Step1Data = { jurisdiction: 'UK' | 'EU' | null; originCountry: string | null; };
+type ShipmentLineInput = { 
+  hs_code: string; 
+  description: string; 
+  value?: string;
+  currency?: string;
+  confidence?: number;
+  hsDescription?: string;
+};
+type Step1Data = { 
+  jurisdiction: 'UK' | 'EU' | null; 
+  originCountry: string | null; 
+  destinationCountry: string | null;
+  incoterm: string | null;
+};
 
 interface CalculatorState {
   jurisdiction: 'UK' | 'EU' | null;
@@ -33,12 +45,12 @@ export const useCalculatorStore = create<CalculatorState>()(
       incoterm: null,
       freightCost: null,
       insuranceCost: null,
-      lines: [{ hs_code: '', description: '' }],
+      lines: [{ hs_code: '', description: '', value: '', currency: 'GBP' }],
       currentStep: 1,
 
       // Actions
       setStep1: (data) => set((state) => ({ ...state, ...data })),
-      addLine: () => set((state) => ({ lines: [...state.lines, { hs_code: '', description: '' }] })),
+      addLine: () => set((state) => ({ lines: [...state.lines, { hs_code: '', description: '', value: '', currency: 'GBP' }] })),
       updateLine: (index, updates) => set((state) => {
         const newLines = [...state.lines];
         newLines[index] = { ...newLines[index], ...updates };
@@ -54,7 +66,7 @@ export const useCalculatorStore = create<CalculatorState>()(
         incoterm: null,
         freightCost: null,
         insuranceCost: null,
-        lines: [{ hs_code: '', description: '' }],
+        lines: [{ hs_code: '', description: '', value: '', currency: 'GBP' }],
         currentStep: 1,
       }),
       setCurrentStep: (step) => set({ currentStep: step }),
