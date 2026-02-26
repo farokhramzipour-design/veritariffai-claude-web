@@ -3,7 +3,10 @@ import Logo from "@/components/ui/Logo";
 export default function TopNav() {
   return (
     <header className="flex justify-between items-center p-4 border-b border-border-default">
-      <Logo />
+      <div className="flex items-center gap-2">
+        <Logo />
+        <span className="text-xl font-bold tracking-tight text-text-primary">Veritariff</span>
+      </div>
       <nav className="hidden md:flex gap-6 items-center">
         <a href="#" className="text-sm text-text-secondary hover:text-text-primary">Features</a>
         <a href="#" className="text-sm text-text-secondary hover:text-text-primary">Pricing</a>

@@ -21,8 +21,8 @@ const config: Config = {
         'mesh-gradient': "radial-gradient(ellipse at 20% 50%, rgba(0, 200, 150, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(77, 171, 247, 0.1) 0%, transparent 50%), radial-gradient(ellipse at 60% 80%, rgba(192, 132, 252, 0.08) 0%, transparent 50%)",
       },
       fontFamily: {
-        display: ["var(--font-display)"],
-        body: ["var(--font-body)"],
+        display: ["var(--font-display)", "var(--font-persian)", "sans-serif"],
+        body: ["var(--font-body)", "var(--font-persian)", "sans-serif"],
         mono: ["var(--font-mono)"],
       },
       colors: {

@@ -1,48 +1,58 @@
 "use client";
 import { motion } from 'framer-motion';
-import { AlertTriangle, FileWarning, Calculator, RefreshCw } from 'lucide-react';
+import { ArrowDown, Flag, Shuffle } from 'lucide-react';
 
 const problems = [
-  { text: "Hidden duties discovered at clearance", icon: FileWarning },
-  { text: "Unexpected anti-dumping charges", icon: AlertTriangle },
-  { text: "Manual spreadsheets with outdated rates", icon: Calculator },
-  { text: "Inconsistent FX conversions", icon: RefreshCw },
+  { 
+    title: "Profit Wiped Out",
+    text: "A 5-day customs delay equals a 1% tariff increase.", 
+    icon: ArrowDown 
+  },
+  { 
+    title: "Compliance Fines",
+    text: "Sanctions and carbon taxes are now board-level financial risks.", 
+    icon: Flag 
+  },
+  { 
+    title: "Manual Chaos",
+    text: "Endless emails between forwarders, suppliers, and customs brokers.", 
+    icon: Shuffle 
+  },
 ];
 
 export const ProblemSolution = () => (
-  <section className="py-20 lg:py-32">
-    <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
-      <div className="space-y-4">
+  <section className="py-20 lg:py-32 bg-white">
+    <div className="container mx-auto px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="text-center max-w-3xl mx-auto mb-16"
+      >
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-6">
+          80% of SMEs manage border risk with Excel. <br />
+          <span className="text-red-600">They are flying blind.</span>
+        </h2>
+      </motion.div>
+
+      <div className="grid md:grid-cols-3 gap-8">
         {problems.map((problem, i) => (
           <motion.div 
-            key={problem.text}
-            className="p-4 rounded-lg border border-border-default bg-bg-surface/50 flex items-center gap-4 shadow-lg"
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
+            key={problem.title}
+            className="group p-8 rounded-2xl bg-slate-50 border border-slate-100 text-center hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.5, delay: i * 0.1 }}
           >
-            <div className="w-10 h-10 bg-bg-elevated rounded-md flex items-center justify-center flex-shrink-0">
-              <problem.icon className="w-5 h-5 text-accent-warning" />
+            <div className="w-16 h-16 mx-auto mb-6 bg-white rounded-full flex items-center justify-center shadow-sm text-red-600 group-hover:scale-110 group-hover:bg-red-50 transition-all duration-300">
+              <problem.icon className="w-8 h-8 group-hover:rotate-12 transition-transform duration-300" />
             </div>
-            <p className="font-medium text-text-secondary text-sm sm:text-base">{problem.text}</p>
+            <h3 className="text-xl font-bold text-slate-900 mb-3">{problem.title}</h3>
+            <p className="text-slate-600 leading-relaxed">{problem.text}</p>
           </motion.div>
         ))}
       </div>
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.6 }}
-        className="text-center lg:text-left"
-      >
-        <h2 className="text-3xl sm:text-4xl font-bold text-text-primary tracking-tight">
-          From Ambiguity to Accuracy.
-        </h2>
-        <p className="mt-6 text-base sm:text-lg text-text-secondary">
-          TradeCalc integrates official tariff databases, applies real-time rules of origin logic, and exposes every component of your landed cost. Eliminate guesswork and build supply chain resilience.
-        </p>
-      </motion.div>
     </div>
   </section>
 );
