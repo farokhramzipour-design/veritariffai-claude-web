@@ -1,101 +1,114 @@
-You are tasked with applying UI/UX enhancements to an existing HTML landing page for "Veritariff." Your job is strictly to add animations and visual effects. Do not change any existing functionality, layout structure, section content, copy, or logic.
+Here's a detailed prompt to give your AI agent:
 
-ANIMATIONS TO ADD — implement all of the following:
-Global / Page-level:
+PROMPT:
 
-Add a <canvas> element fixed to the background with 150 connected floating particles using teal (#64FFDA) color with line-mesh connections between nearby particles. Must persist as user scrolls.
-Add a custom cursor: a small teal dot that follows the mouse instantly, and a larger ring that lags behind with easing. The ring should scale up when hovering over any <a>, <button>, or card element.
-Add a scroll progress bar fixed at the top of the page — a 2px teal line that grows in width from 0% to 100% as the user scrolls down the page.
-Add a moving grid background (background-size: 60px 60px) with a slow drift animation using background-position keyframes on all dark sections.
-Add a repeating scanline overlay on the hero section using repeating-linear-gradient.
+Redesign the "Meet Our Team" section to match the Veritariff design system exactly. The current section looks generic and unpolished. Replace it entirely with a premium, high-impact team section that feels like it belongs in the same "Fintech meets Cyberpunk" aesthetic as the rest of the landing page.
 
-Navigation:
+KEEP THIS DATA (do not change any real content):
 
-On page load, the nav should slide down from translateY(-100%) to translateY(0) with a fade.
-On scroll past 60px, the nav should shrink its padding and increase background opacity smoothly via JS scroll listener.
-Nav links should have an animated underline that scales in from scaleX(0) to scaleX(1) on hover.
-The Sign In button should have a teal fill that slides in from left (translateX(-100%) to translateX(0)) on hover, switching text to dark.
+Person 1:
 
-Hero Section:
+    Name: Hasti Ebrahimighosour
+    Role Line 1: Business Development
+    Role Line 2: Founder
+    LinkedIn link: keep existing href
+    Avatar image: keep existing <img> src
 
-The eyebrow text should animate in with letter-spacing expanding from wide to normal.
-The two flanking lines on the eyebrow should grow from width: 0 to width: 36px using keyframes.
-The H1 should fade in from translateY(40px) scale(0.96) to normal.
-The italic/em word ("bleeding profit") should have a CSS glitch effect — two pseudo-elements (::before, ::after) with clip-path and text-shadow in red and teal that trigger intermittently via keyframes.
-The hero subtitle and CTA wrap should fade up with staggered animation delays.
-The live calc ticker (a small inline preview element showing a GBP value) should update its number every 2 seconds with a fade-out/fade-in transition, cycling through a small array of realistic values.
-The two segmentation cards should animate in from translateY(30px) scale(0.95) with staggered delays (1.2s and 1.4s).
-Cards on hover: lift with translateY(-8px), show a teal border, reveal a gradient overlay (::before), and draw a bottom border line (::after scaleX 0→1). The arrow icon in the top-right corner should appear and shift diagonally on hover.
-The trust bar should fade in last with the longest delay.
-Floating orb elements should have a slow translateY breathing animation (separate keyframes for each orb).
+Person 2:
 
-Problem Section (white background):
+    Name: Behnam Ahmadifar
+    Role Line 1: CTO
+    Role Line 2: Founder
+    LinkedIn link: keep existing href
+    Avatar image: keep existing <img> src
 
-All cards and the heading should use a scroll-triggered reveal: opacity: 0 + translateY(40px) → visible when intersected, with staggered transition-delay per card.
-The large stat numbers at the top of each card (e.g. "5-Day", "£50k", "3x") should count up from 0 using requestAnimationFrame when the card enters the viewport via IntersectionObserver.
-On card hover: lift, show red bottom border sweeping in via scaleX, subtle red gradient overlay from top.
+Footer tagline: "We are a passionate team dedicated to revolutionizing trade compliance with cutting-edge technology."
 
-Solution Section — all 3 dashboard panels:
+DESIGN REQUIREMENTS:
 
-All solution text blocks and visual panels should use directional scroll reveals: left text slides in from translateX(-50px), right visuals from translateX(50px), triggering on scroll.
-Every solution visual panel should have a teal scan line (height: 2px, linear-gradient) that continuously sweeps from top: 0% to top: 100% using a looping CSS animation.
-Panel borders should brighten and emit a faint glow on hover.
+Section wrapper:
 
-Panel 1 — Calculation Animation (KEEP ALL EXISTING LOGIC, only enhance):
+    Background: #0A192F (match page dark navy)
+    Add the animated drifting grid background (same .grid-bg class used in other dark sections)
+    Add a subtle radial teal glow (rgba(100,255,218,0.05)) centered behind the cards
+    Top border: 1px solid rgba(100,255,218,0.12)
+    Padding: 110px 5%
 
-Keep the existing cycle: rolls numbers, animates bars, shows savings badge, toggles status indicator.
-Enhance the bar fills: start at width: 0 and transition to target width with cubic-bezier(0.16, 1, 0.3, 1) easing over 1.4s.
-The savings badge should spring in using cubic-bezier(0.34, 1.56, 0.64, 1) (overshoot effect) from scale(0.8).
-The rolling number animation should use a 4th-power ease-out curve.
-Trigger the entire cycle only when the panel enters the viewport (IntersectionObserver, threshold 0.35). Loop every 5.5 seconds.
+Section heading:
 
-Panel 2 — Compliance Shield:
+    Replace plain "Meet Our Team" with the same typographic treatment used across the page
+    Add a small eyebrow label above in JetBrains Mono, teal color, uppercase, wide letter-spacing: // THE FOUNDERS
+    Main heading in Syne font, font-weight: 800, white, large — styled like other section H2s
+    Both eyebrow and heading use the .reveal scroll-triggered animation class
 
-The shield icon should have two concentric dashed rings rotating in opposite directions via CSS animation: spin.
-A pulse ring should expand outward from the shield with opacity fading to 0 — looping.
-The three scan list items should be hidden (opacity: 0, translateX(-10px)) and animate in sequentially with 700ms gaps when the panel enters the viewport.
-A scan progress bar at the bottom should animate from 0% to 100% width and fade out, looping infinitely.
+Team cards — completely redesign:
 
-Panel 3 — QR Vault:
+    Layout: centered flex row, gap 32px, max-width 900px, centered on page. Cards should be equal width (~380px each)
+    Card background: rgba(255,255,255,0.025) glassmorphism with backdrop-filter: blur(20px)
+    Card border: 1px solid rgba(100,255,218,0.12)
+    Card border-radius: 16px
+    Card padding: 40px 36px
+    Card text-align: center
+    Apply .reveal with .d1 / .d2 staggered delays
 
-The QR box should have a slow translateY float animation (up and down, 3s loop).
-A dashed border ring around the QR box should slowly rotate.
-Individual QR cells should randomly flash to low opacity and restore every 500ms via setInterval.
+Card hover state:
 
-AEO Badge Section:
+    transform: translateY(-8px)
+    Border color transitions to rgba(100,255,218,0.4)
+    Box shadow: 0 20px 60px rgba(100,255,218,0.08), 0 0 0 1px rgba(100,255,218,0.15)
+    A bottom border line sweeps in via ::after pseudo-element: scaleX(0) → scaleX(1), teal gradient
+    A subtle teal gradient overlay fades in via ::before pseudo-element on hover
 
-All text and the button should use scroll-triggered reveal class animations with staggered delays.
-The badge should use reveal-scale: animates in from scale(0.85) with a spring overshoot.
-Three concentric rings around the badge should rotate at different speeds and directions using CSS animations.
-The badge center should pulse its box-shadow glow in and out on a 4s loop.
+Avatar:
 
-Testimonial Cards:
+    Display the existing <img> in a circular frame: width: 100px, height: 100px, border-radius: 50%, object-fit: cover
+    Add a teal glowing ring around the avatar: border: 2px solid var(--teal) with box-shadow: 0 0 20px rgba(100,255,218,0.4)
+    Wrap the avatar in a container that has a second outer dashed ring (border: 1px dashed rgba(100,255,218,0.25), border-radius: 50%) that slowly rotates via CSS animation (animation: spin 12s linear infinite)
+    On card hover, the avatar ring glow should intensify
 
-Reveal with staggered scroll-triggered fade-up animation.
-On hover: lift, increase border opacity, and draw a teal top-border line sweeping from scaleX(0) to scaleX(1).
+Name:
 
-Footer CTA Section:
+    font-family: 'Syne', sans-serif
+    font-weight: 800
+    font-size: 1.3rem
+    color: #E6F1FF
+    margin-top: 20px, margin-bottom: 8px
+    letter-spacing: -0.01em
 
-Three full-width horizontal lines should animate: scaleX(0) → scaleX(1) → scaleX(0) in sequence with staggered delays, repeating on a 6s loop.
-The heading and paragraph use scroll-triggered reveals with delays.
-The four stat numbers should count up from 0 using requestAnimationFrame when the stats row enters the viewport.
-The CTA button and footer links use reveal animations with delays.
+Role lines:
 
-Button (.btn-primary) — global:
+    Each role line in JetBrains Mono, font-size: 0.82rem, color: #64FFDA (teal), letter-spacing: 0.08em
+    Separated by a · divider OR stacked on separate lines
+    Add a small teal tag-style pill around each role: background: rgba(100,255,218,0.08), border: 1px solid rgba(100,255,218,0.2), border-radius: 20px, padding: 3px 12px
 
-A diagonal light sweep (::before pseudo-element, skewed white gradient) should slide across the button on hover.
-Button lifts with translateY(-3px) and emits a teal box-shadow glow on hover.
-The arrow SVG inside shifts translateX(5px) on hover.
+LinkedIn button:
 
+    Remove the plain current LinkedIn link style
+    Replace with a styled ghost button: border: 1px solid rgba(100,255,218,0.25), color: var(--teal), border-radius: 6px, padding: 8px 20px, font-size: 0.82rem, font-family: 'JetBrains Mono'
+    On hover: background fills with rgba(100,255,218,0.1), border brightens, emits soft glow
+    Keep the LinkedIn SVG icon to the left of the text
+    margin-top: 24px
+    display: inline-flex, align-items: center, gap: 8px
 
-STRICT RULES:
+Footer tagline:
 
-Do not modify any section text, headings, subtext, or copy.
-Do not change the layout, flexbox/grid structure, or section order.
-Do not remove or alter any existing JavaScript calculation logic.
-Do not change color variables or the design system.
-Do not add new sections or remove existing ones.
-All new animations must be purely additive — CSS classes, keyframes, and JS listeners layered on top of existing markup.
-Use IntersectionObserver for all scroll-triggered effects (do not use scroll event listeners for reveal animations).
-All transition-delay values must be applied via utility classes (.d1 through .d6) not inline styles.
-Test that the calculation panel still cycles through scenarios and updates the DOM correctly after your changes.
+    Center-aligned, max-width: 600px, margin: 0 auto
+    font-size: 1rem, color: #A8B2D8, line-height: 1.7
+    Wrap the word "revolutionizing" in a <em> or <span> and color it var(--teal) to add visual emphasis
+    Add .reveal scroll animation with .d4 delay
+    Add a short 1px teal horizontal rule above it: width: 60px, centered, margin: 40px auto 24px, background: var(--teal), opacity: 0.4
+
+Animations to add:
+
+    Both cards use .reveal class: slide up from translateY(40px) with opacity 0 → 1 on scroll (use existing IntersectionObserver reveal system already on the page)
+    The rotating dashed ring on the avatar should use the same @keyframes spin already defined on the page
+    The teal avatar glow should pulse subtly using a box-shadow keyframe animation (same pattern as the AEO badge pulse)
+    On page load or when section scrolls into view, the cards should animate in with a 0.1s and 0.3s stagger
+
+Strict rules:
+
+    Do not change any names, titles, LinkedIn URLs, or avatar image sources
+    Do not modify any other section on the page
+    Do not remove or alter the existing IntersectionObserver reveal system — just apply the existing .reveal, .d1, .d2 classes to new elements
+    Use only fonts, CSS variables, and keyframes already defined on the page (--teal, --navy, --white, --grey-light, --border, Syne, DM Sans, JetBrains Mono)
+    The redesigned section must be fully responsive — on mobile (max-width: 768px), cards should stack vertically in a single column

@@ -2,8 +2,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Header } from '@/components/landing-v2/Header';
 import { Footer } from '@/components/landing-v2/Footer';
+import Link from 'next/link';
 
-const PricingPage = () => {
+const ResourcesPage = () => {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
@@ -31,24 +32,30 @@ const PricingPage = () => {
     };
   }, []);
 
-  const plans = [
+  const resources = [
     {
-      name: 'Starter',
-      price: '$0',
-      description: 'Perfect for small businesses and individuals.',
-      features: ['5 Lookups/Month', 'Basic Duty Calculation', 'Email Support']
+      title: 'Global Trade Compliance Guide 2024',
+      type: 'Guide',
+      description: 'Everything you need to know about the latest trade regulations.',
+      link: '#'
     },
     {
-      name: 'Pro',
-      price: '$99',
-      description: 'For growing companies with higher volume.',
-      features: ['500 Lookups/Month', 'Advanced HS Classification', 'Priority Support', 'Export Compliance']
+      title: 'HS Code Classification Handbook',
+      type: 'E-Book',
+      description: 'Master the art of Harmonized System classification with our expert handbook.',
+      link: '#'
     },
     {
-      name: 'Enterprise',
-      price: 'Custom',
-      description: 'Tailored solutions for large organizations.',
-      features: ['Unlimited Lookups', 'API Access', 'Dedicated Account Manager', 'Custom Integration']
+      title: 'Navigating Sanctions in a Volatile World',
+      type: 'Webinar',
+      description: 'Watch our recorded webinar on strategies for staying compliant amidst changing sanctions.',
+      link: '#'
+    },
+    {
+      title: 'Import Duty Calculator Documentation',
+      type: 'Documentation',
+      description: 'Technical documentation for integrating our API into your systems.',
+      link: '#'
     }
   ];
 
@@ -68,39 +75,32 @@ const PricingPage = () => {
                 {/* Section Heading */}
                 <div className="text-center mb-16">
                     <div className="reveal d1 inline-block font-mono text-[#64FFDA] text-sm tracking-[0.2em] uppercase mb-4">
-                        // PLANS
+                        // KNOWLEDGE BASE
                     </div>
                     <h2 className="reveal d2 text-4xl md:text-5xl font-bold text-white tracking-tight">
-                        Pricing Options
+                        Resources
                     </h2>
                 </div>
 
-                {/* Pricing Cards */}
-                <div className="grid md:grid-cols-3 gap-8 max-w-[1100px] mx-auto">
-                    {plans.map((plan, index) => (
-                        <div 
+                {/* Resources Grid */}
+                <div className="grid md:grid-cols-2 gap-8 max-w-[900px] mx-auto">
+                    {resources.map((resource, index) => (
+                        <Link 
+                            href={resource.link}
                             key={index}
-                            className={`reveal d${index + 1} group relative bg-[rgba(255,255,255,0.025)] backdrop-blur-[20px] border border-[rgba(100,255,218,0.12)] rounded-2xl p-8 text-center transition-all duration-300 hover:-translate-y-2 hover:border-[rgba(100,255,218,0.4)] hover:shadow-[0_20px_60px_rgba(100,255,218,0.08),0_0_0_1px_rgba(100,255,218,0.15)] overflow-hidden flex flex-col`}
+                            className={`reveal d${(index % 4) + 1} group relative bg-[rgba(255,255,255,0.025)] backdrop-blur-[20px] border border-[rgba(100,255,218,0.12)] rounded-2xl p-8 text-left transition-all duration-300 hover:-translate-y-2 hover:border-[rgba(100,255,218,0.4)] hover:shadow-[0_20px_60px_rgba(100,255,218,0.08),0_0_0_1px_rgba(100,255,218,0.15)] overflow-hidden block`}
                         >
                             {/* Hover gradient overlay */}
                             <div className="absolute inset-0 bg-gradient-to-b from-[rgba(100,255,218,0.05)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                             
-                            <h3 className="text-2xl font-bold text-[#E6F1FF] mb-2 relative z-10">{plan.name}</h3>
-                            <div className="text-4xl font-mono text-[#64FFDA] mb-4 relative z-10">{plan.price}<span className="text-sm text-[#A8B2D8]">/mo</span></div>
-                            <p className="text-[#A8B2D8] text-sm mb-6 relative z-10">{plan.description}</p>
-                            
-                            <ul className="text-left space-y-3 mb-8 flex-grow relative z-10">
-                                {plan.features.map((feature, fIndex) => (
-                                    <li key={fIndex} className="text-[#E6F1FF] text-sm flex items-start gap-2">
-                                        <span className="text-[#64FFDA]">✓</span> {feature}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button className="w-full py-3 rounded-lg border border-[#64FFDA] text-[#64FFDA] font-mono text-sm hover:bg-[#64FFDA] hover:text-[#0A192F] transition-all duration-300 relative z-10">
-                                Choose Plan
-                            </button>
-                        </div>
+                            <div className="relative z-10">
+                                <span className="inline-block px-3 py-1 mb-4 text-xs font-mono text-[#64FFDA] border border-[#64FFDA] rounded-full bg-[#64FFDA]/10">
+                                    {resource.type}
+                                </span>
+                                <h3 className="text-xl font-bold text-[#E6F1FF] mb-3 group-hover:text-[#64FFDA] transition-colors">{resource.title}</h3>
+                                <p className="text-[#A8B2D8] text-sm leading-relaxed">{resource.description}</p>
+                            </div>
+                        </Link>
                     ))}
                 </div>
             </div>
@@ -126,4 +126,4 @@ const PricingPage = () => {
   );
 };
 
-export default PricingPage;
+export default ResourcesPage;

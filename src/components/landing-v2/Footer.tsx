@@ -1,6 +1,7 @@
 "use client";
 import Logo from '@/components/ui/Logo';
 import { Linkedin, Twitter, Youtube } from 'lucide-react';
+import Link from 'next/link'; // Import Link component
 
 const footerLinks = {
   Product: [
@@ -11,6 +12,7 @@ const footerLinks = {
   ],
   Company: [
     { name: 'About Us', href: '#' },
+    { name: 'Team', href: '/team' }, // Added Team link
     { name: 'Blog', href: '#' },
     { name: 'Careers', href: '#' },
     { name: 'Contact', href: '#' },
@@ -22,8 +24,8 @@ const footerLinks = {
     { name: 'System Status', href: '#' },
   ],
   Legal: [
-    { name: 'Privacy Policy', href: '#' },
-    { name: 'Terms of Service', href: '#' },
+    { name: 'Privacy Policy', href: '/legal/privacy-policy' },
+    { name: 'Terms and Conditions', href: '/legal/terms-and-conditions' },
     { name: 'Cookie Policy', href: '#' },
   ],
 };
@@ -55,9 +57,15 @@ export const Footer = () => (
             <ul className="space-y-3">
               {links.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-sm text-slate-400 hover:text-[#64FFDA] transition-all duration-200 block hover:translate-x-1">
-                    {link.name}
-                  </a>
+                  {link.href.startsWith('/') && link.href !== '#' ? ( // Use Link for internal paths
+                    <Link href={link.href} className="text-sm text-slate-400 hover:text-[#64FFDA] transition-all duration-200 block hover:translate-x-1">
+                      {link.name}
+                    </Link>
+                  ) : ( // Use a for external or placeholder links
+                    <a href={link.href} className="text-sm text-slate-400 hover:text-[#64FFDA] transition-all duration-200 block hover:translate-x-1">
+                      {link.name}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -68,8 +76,8 @@ export const Footer = () => (
       <div className="pt-8 border-t border-[#233554] flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
         <p>© {new Date().getFullYear()} Veritariff. All rights reserved.</p>
         <div className="flex gap-6">
-          <a href="#" className="hover:text-[#64FFDA] transition-colors">Privacy</a>
-          <a href="#" className="hover:text-[#64FFDA] transition-colors">Terms</a>
+          <Link href="/legal/privacy-policy" className="hover:text-[#64FFDA] transition-colors">Privacy</Link>
+          <Link href="/legal/terms-and-conditions" className="hover:text-[#64FFDA] transition-colors">Terms</Link>
           <a href="#" className="hover:text-[#64FFDA] transition-colors">Cookies</a>
         </div>
       </div>

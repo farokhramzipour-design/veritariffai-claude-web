@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans, Vazirmatn } from "next/font/google";
+import { Syne, DM_Sans, Vazirmatn, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TokenHandler } from "@/components/TokenHandler";
 import { Suspense } from "react";
@@ -17,6 +17,13 @@ const dmSans = DM_Sans({
   weight: ['400', '500', '600'],
   display: 'swap',
   variable: '--font-body',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-mono',
 });
 
 const vazirmatn = Vazirmatn({
@@ -39,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${syne.variable} ${dmSans.variable} ${vazirmatn.variable} font-body`}
+        className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable} ${vazirmatn.variable} font-body`}
       >
         <ThemeProvider
           attribute="class"

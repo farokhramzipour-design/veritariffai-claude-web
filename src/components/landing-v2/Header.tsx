@@ -6,18 +6,18 @@ export const Header = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A192F]/90 backdrop-blur-lg border-b border-[#233554] transition-all duration-300">
       <div className="container mx-auto px-4 h-20 flex justify-between items-center">
-        <div className="flex items-center gap-2 group cursor-pointer">
+        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
            <div className="transition-transform duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(100,255,218,0.5)]">
              <Logo />
            </div>
            <span className="text-white font-bold text-xl tracking-tight hidden sm:inline-block group-hover:text-[#64FFDA] transition-colors duration-300">Veritariff</span>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex items-center gap-8">
-          {['Features', 'Pricing', 'Resources'].map((item) => (
+          {['Features', 'Pricing', 'Resources', 'Team'].map((item) => ( // Added 'Team' here
             <Link 
               key={item}
-              href={`#${item.toLowerCase()}`} 
+              href={`/${item.toLowerCase()}`} // Link to separate pages
               className="relative text-sm font-medium text-slate-300 hover:text-[#64FFDA] transition-colors py-1 group"
             >
               {item}
