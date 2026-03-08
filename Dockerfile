@@ -7,6 +7,9 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
+# Remove package-lock.json to force fresh install based on package.json
+RUN rm -f package-lock.json
+
 # Install dependencies
 RUN npm install
 
