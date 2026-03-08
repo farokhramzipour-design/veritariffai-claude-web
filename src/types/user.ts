@@ -1,8 +1,24 @@
-// src/types/user.ts
+export interface CompanyDetails {
+  name: string;
+  number: string;
+  address: string;
+  status: string;
+  sicCode?: string;
+  vatNumber?: string;
+  eoriNumber?: string;
+  products?: string[];
+  countries?: string[];
+  tradeType?: 'import' | 'export' | 'both';
+  aeoStatus?: boolean;
+  forwarder?: string;
+  ddaAccount?: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
   plan: 'FREE' | 'PRO';
-  // Add any other properties returned by your /api/v1/users/me endpoint
+  role?: 'researcher' | 'importer' | 'exporter' | 'company';
+  companyDetails?: CompanyDetails;
 }

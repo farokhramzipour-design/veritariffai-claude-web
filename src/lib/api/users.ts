@@ -8,4 +8,11 @@ export const usersApi = {
         Authorization: `Bearer ${token}`,
       },
     }),
+
+  updateMe: (token: string, data: Partial<User>): Promise<User> =>
+    apiClient.patch('/api/v1/users/me', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }),
 };

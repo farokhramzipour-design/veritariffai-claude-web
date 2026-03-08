@@ -36,6 +36,7 @@ interface AuthState {
   setToken: (token: string) => Promise<void>;
   checkAuth: () => Promise<void>;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -43,6 +44,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   isLoading: true,
   isAuthenticated: false,
+
+  updateUser: async (updates: Partial<User>) => {
+    const { user: currentUser, accessToken } = get();
+    if (currentUser && accessToken) {
+      // Optimistic update
+      set({ user: { ...currentUser, ...updates } });
+      try {
+        await usersApi.updateMe(accessToken, updates);
+      } catch (error) {
+        console.error("Failed to update user", error);
+        // Revert on failure? Or just log. For now just log.
+        // In a real app, we might revert or show a toast.
+      }
+    }
+  },
 
   setToken: async (token: string) => {
     set({ isLoading: true });
