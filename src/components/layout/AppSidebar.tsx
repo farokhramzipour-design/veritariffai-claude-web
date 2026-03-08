@@ -3,11 +3,9 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Calculator, 
-  History, 
-  Settings, 
-  LogOut, 
-  User 
+  History 
 } from "lucide-react";
+import UserProfile from "@/components/auth/UserProfile";
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -17,11 +15,17 @@ export default function AppSidebar() {
   return (
     <aside className="w-64 flex flex-col h-screen border-r border-[var(--border)] bg-[var(--s1)] text-[var(--text)]">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-8 h-8 bg-[var(--cyan)] rounded-lg flex items-center justify-center">
-            <span className="font-display font-bold text-black text-lg">V</span>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[var(--cyan)] rounded-lg flex items-center justify-center">
+              <span className="font-display font-bold text-black text-lg">V</span>
+            </div>
+            <span className="font-display font-bold text-lg tracking-tight">VeriTariff</span>
           </div>
-          <span className="font-display font-bold text-lg tracking-tight">VeriTariff</span>
+          {/* User Profile Circle Button */}
+          <div className="flex-shrink-0">
+             <UserProfile />
+          </div>
         </div>
 
         <nav className="flex flex-col gap-2">
@@ -74,30 +78,8 @@ export default function AppSidebar() {
           </div>
           <p className="text-[10px] text-[var(--muted)] mt-2">47 / 100 calculations used</p>
         </div>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-[var(--s3)] flex items-center justify-center border border-[var(--border)]">
-            <User size={20} className="text-[var(--muted2)]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--text)] truncate">Jane Cooper</p>
-            <p className="text-xs text-[var(--muted2)] truncate">jane@example.com</p>
-          </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <Link 
-            href="/settings"
-            className="flex-1 flex items-center justify-center gap-2 py-2 border border-[var(--border)] rounded hover:bg-[var(--s2)] transition-colors text-xs font-medium text-[var(--muted2)] hover:text-[var(--text)]"
-          >
-            <Settings size={14} />
-            Settings
-          </Link>
-          <button className="flex items-center justify-center p-2 border border-[var(--border)] rounded hover:bg-[var(--s2)] transition-colors text-[var(--muted2)] hover:text-[var(--red)]">
-            <LogOut size={14} />
-          </button>
-        </div>
       </div>
     </aside>
+
   );
 }
