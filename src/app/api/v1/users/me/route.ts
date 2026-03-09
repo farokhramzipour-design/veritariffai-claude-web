@@ -38,13 +38,16 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const token = authHeader.split(' ')[1];
+        const role = token === 'mock-academic-token' ? 'researcher' : null;
+
         // Mock GET request
         return NextResponse.json({
             id: 'mock-user-id',
             email: 'user@example.com',
             name: 'Mock User',
             plan: 'FREE',
-            role: 'researcher' // Default or fetched from DB
+            role: role // Return role only for specific mock token
         });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

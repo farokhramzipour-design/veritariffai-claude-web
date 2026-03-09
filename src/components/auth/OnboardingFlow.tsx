@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { Button } from '@/components/ui/Button';
@@ -58,6 +58,52 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const [newProduct, setNewProduct] = useState('');
   const [newCountry, setNewCountry] = useState('');
+  const [isProcessingPending, setIsProcessingPending] = useState(true);
+
+  // --- Auto-Submit Pending Data ---
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const pending = localStorage.getItem('pendingOnboarding');
+        if (pending) {
+            try {
+                const data = JSON.parse(pending);
+                if (data.role) {
+                    setLoading(true);
+                    updateUser({
+                        role: data.role,
+                        companyDetails: data.companyDetails
+                    }).then(() => {
+                        localStorage.removeItem('pendingOnboarding');
+                        onComplete();
+                    }).catch(err => {
+                        console.error("Failed to apply pending onboarding", err);
+                        setError("Failed to apply your registration details. Please try again.");
+                        setIsProcessingPending(false);
+                    }).finally(() => setLoading(false));
+                } else {
+                    setIsProcessingPending(false);
+                }
+            } catch (e) {
+                console.error("Invalid pending onboarding data", e);
+                localStorage.removeItem('pendingOnboarding');
+                setIsProcessingPending(false);
+            }
+        } else {
+            setIsProcessingPending(false);
+        }
+    } else {
+        setIsProcessingPending(false);
+    }
+  }, [updateUser, onComplete]);
+
+  if (isProcessingPending) {
+    return (
+        <div className="w-full h-[600px] flex flex-col items-center justify-center bg-bg-elevated rounded-xl border border-border-default">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-primary mb-4" />
+            <p className="text-text-secondary">Finalizing your account setup...</p>
+        </div>
+    );
+  }
 
   // Helper to advance step
   const nextStep = () => setStep(s => s + 1);

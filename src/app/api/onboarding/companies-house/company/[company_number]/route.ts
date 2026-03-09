@@ -30,8 +30,9 @@ export async function GET(request: Request, { params }: { params: { company_numb
     const profileData = await profileResponse.json();
 
     // Ideally, we would fetch other resources concurrently if needed for the snapshot
-    // e.g. officers, filing-history, etc.
+    // e.g. officers, filing-history, persons-with-significant-control, charges, insolvency, registers.
     // But for the initial "Active" check, just the profile is enough.
+    // The full data fetch should happen on the backend during account creation/update.
     
     return NextResponse.json(profileData);
   } catch (error) {
