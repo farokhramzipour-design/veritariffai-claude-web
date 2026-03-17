@@ -1,10 +1,10 @@
-# AGENT PROMPT — TradeCalc Landing Page Implementation
+# AGENT PROMPT — veritariffai Landing Page Implementation
 # Ready-to-paste prompt for your AI coding agent (Cursor, Claude Code, Windsurf, etc.)
 # ─────────────────────────────────────────────────────────────────────────────────
 
 ---
 
-You are implementing the **complete landing page** for TradeCalc — a customs-grade trade cost engine for importers, freight forwarders, and customs brokers. This is a $50M-evaluated B2B SaaS product. The implementation must be **production-quality**, visually **stunning**, and **fully functional** with no placeholders.
+You are implementing the **complete landing page** for veritariffai — a customs-grade trade cost engine for importers, freight forwarders, and customs brokers. This is a $50M-evaluated B2B SaaS product. The implementation must be **production-quality**, visually **stunning**, and **fully functional** with no placeholders.
 
 Deliver a single file: `landing.html` — a self-contained, zero-dependency HTML page using only inline CSS and vanilla JavaScript. No frameworks, no npm, no build step. The page must work by opening the file in a browser.
 
@@ -61,7 +61,7 @@ Excise purple:        #C084FC
 ### SECTION 1: NAVIGATION
 Sticky top nav, 68px height, `backdrop-filter: blur(16px)` on scroll.
 
-**Left:** SVG logo — a globe arc intersecting a calculator grid. Wordmark "TradeCalc" in Syne 700. The dot in the logo is #00C896.
+**Left:** SVG logo — a globe arc intersecting a calculator grid. Wordmark "veritariffai" in Syne 700. The dot in the logo is #00C896.
 
 **Center links:** How It Works · Features · Pricing (DM Sans 500, #8899B4, hover → #F0F4FF with 0.2s transition)
 
@@ -294,7 +294,7 @@ Headline: `Getting import costs wrong is expensive.` — Syne 700, 42px, #F0F4FF
 
 Body paragraphs (DM Sans 400, 16px, #8899B4, line-height 1.7, max-width 480px):
 - "Traditional brokers take days and cost thousands. Spreadsheet estimates miss anti-dumping duties, quota rates, and customs valuation rules. Most online 'calculators' apply one ad valorem rate to an entire invoice."
-- "TradeCalc runs 11 calculation engines simultaneously — the same logic customs authorities use — and returns a result in seconds."
+- "veritariffai runs 11 calculation engines simultaneously — the same logic customs authorities use — and returns a result in seconds."
 
 **Three stat blocks** (inline, left-aligned, 40px margin-top):
 
@@ -306,11 +306,11 @@ Stats: `47%` "of importers under or overpay duty in year one" · `£2,984` "aver
 
 **Right column (45%):**
 
-An animated comparison card showing the difference between a spreadsheet estimate and TradeCalc:
+An animated comparison card showing the difference between a spreadsheet estimate and veritariffai:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│   Spreadsheet Estimate        TradeCalc Result       │
+│   Spreadsheet Estimate        veritariffai Result    │
 │   ───────────────────         ─────────────────      │
 │   Invoice value  £10,000      Customs value £11,250  │
 │   Duty rate         0%        Anti-dump duty £1,574  │
@@ -544,7 +544,7 @@ Each item: border-bottom 1px solid #1E2738, padding 20px 0. Question: DM Sans 60
    "Free gives you HS code validation, basic ad valorem duty, and standard VAT — useful for quick estimates. Pro runs all 11 engines: customs valuation, anti-dumping, rules of origin, quota logic, excise, official FX rates, and full audit trail. Pro is what serious importers and brokers use."
 
 5. **Can I trust this for real customs declarations?**
-   "TradeCalc is a calculation and planning tool, not a substitute for a licensed customs agent for formal declarations. Our results are used for cost planning, budgeting, pricing decisions, and briefing brokers. For live declarations, use our output to check and brief your customs agent."
+   "veritariffai is a calculation and planning tool, not a substitute for a licensed customs agent for formal declarations. Our results are used for cost planning, budgeting, pricing decisions, and briefing brokers. For live declarations, use our output to check and brief your customs agent."
 
 6. **Do you support multi-currency invoices?**
    "Yes. Each line item can have its own currency. Pro users get official HMRC and ECB customs FX rates (the rates customs authorities actually use). Free users get indicative market rates."
@@ -608,7 +608,7 @@ Small print items (DM Sans 400, 13px, #4D6080, line-height 1.8):
 A subtle green pulsing dot next to "Today" to indicate live data.
 
 **Bottom bar:** Full-width, border-top #1E2738, padding-top 24px, margin-top 48px.
-Left: `© 2026 TradeCalc Ltd. All rights reserved.`
+Left: `© 2026 veritariffai Ltd. All rights reserved.`
 Right: `Not a substitute for professional customs advice.`
 Both: DM Sans 400, 13px, #4D6080.
 

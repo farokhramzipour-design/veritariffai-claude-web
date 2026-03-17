@@ -4,7 +4,7 @@
 
 | Field | Value |
 |---|---|
-| Product Name | TradeCalc (working title) |
+| Product Name | veritariffai (working title) |
 | Stack | Next.js 14 (App Router) · TypeScript · Tailwind CSS · Framer Motion |
 | State Management | Zustand (global) + React Query (server state) |
 | Forms | React Hook Form + Zod |
@@ -81,7 +81,7 @@ This is a professional tool. Unlike consumer apps, users want detail. But data d
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.tradecalc.com
+NEXT_PUBLIC_API_URL=https://api.veritariffai.co
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...

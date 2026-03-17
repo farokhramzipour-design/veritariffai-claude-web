@@ -35,7 +35,7 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "TradeCalc — Customs Import Duty Calculator with Live TARIC Data",
+  title: "veritariffai — Customs Import Duty Calculator with Live TARIC Data",
   description: "Calculate your true import costs with customs-grade accuracy.",
 };
 

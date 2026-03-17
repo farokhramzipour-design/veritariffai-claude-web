@@ -184,13 +184,13 @@ Frontend creates Stripe Checkout session via `POST /api/v1/subscriptions/checkou
 - Stripe handles: card input, 3D Secure, payment processing
 
 ### Step 3: Success Redirect
-- Stripe redirects to `https://app.tradecalc.com/upgrade/success?session_id={id}`
+- Stripe redirects to `https://app.veritariffai.co/upgrade/success?session_id={id}`
 
 ### Success Page (`/upgrade/success`)
 ```
 🎉 Welcome to Pro!
 
-You're now on TradeCalc Pro.
+You're now on veritariffai Pro.
 Your card ending in 4242 has been charged £49.00.
 
 What just unlocked for you:

@@ -7,7 +7,7 @@ const TermsAndConditionsPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-6">Terms and Conditions</h1>
         <p className="text-lg mb-4">
-          Welcome to Veritariff! These terms and conditions outline the rules and regulations for the use of Veritariff's Website, located at veritariff.com.
+          Welcome to Veritariff! These terms and conditions outline the rules and regulations for the use of Veritariff&apos;s Website, located at veritariff.com.
         </p>
         <p className="text-lg mb-4">
           By accessing this website we assume you accept these terms and conditions. Do not continue to use veritariff.com if you do not agree to take all of the terms and conditions stated on this page.

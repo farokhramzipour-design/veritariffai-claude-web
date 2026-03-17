@@ -3,7 +3,6 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Cookies from 'js-cookie';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -13,8 +12,7 @@ export default function AuthCallbackPage() {
     const token = searchParams.get('token'); // Get token from URL query parameter
 
     if (token) {
-      // Store the token in a cookie
-      Cookies.set('auth_token', token, { expires: 7 }); // Token expires in 7 days, adjust as needed
+      document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 7}`;
 
       // Redirect to the dashboard
       router.push('/dashboard');

@@ -7,7 +7,7 @@ const PrivacyPolicyPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-white mb-6">Privacy Policy</h1>
         <p className="text-lg mb-4">
-          This Privacy Policy describes how Veritariff collects, uses, and discloses your personal information when you visit or make a purchase from veritariff.com (the "Site").
+          This Privacy Policy describes how Veritariff collects, uses, and discloses your personal information when you visit or make a purchase from veritariff.com (the &quot;Site&quot;).
         </p>
 
         <h2 className="text-2xl font-semibold text-white mt-8 mb-4">1. Information We Collect</h2>

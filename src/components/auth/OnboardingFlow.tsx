@@ -313,7 +313,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            <h2 className="text-2xl font-bold text-center">Welcome! How will you use TradeCalc?</h2>
+            <h2 className="text-2xl font-bold text-center">Welcome! How will you use veritariffai?</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(['researcher', 'importer', 'exporter'] as const).map((r) => (
                 <button

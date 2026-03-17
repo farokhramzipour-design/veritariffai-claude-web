@@ -17,7 +17,7 @@ Design tone: Think Bloomberg Terminal meets Stripe's homepage. Dark, data-confid
 Full-width, sticky top. 72px height. `backdrop-filter: blur(12px)` on scroll.
 
 ```
-[TradeCalc Logo]   [How It Works] [Features] [Pricing]   [Login] [Try Free →]
+[veritariffai Logo]   [How It Works] [Features] [Pricing]   [Login] [Try Free →]
 ```
 
 ### Logo
@@ -166,7 +166,7 @@ All numbers in monospace, emerald color.
 ### Right Visual
 Animated comparison card:
 ```
-❌ Spreadsheet estimate    ✅ TradeCalc result
+❌ Spreadsheet estimate    ✅ veritariffai result
 ────────────────────        ────────────────────
 Invoice value  £10,000     Customs value   £11,250
 Duty rate       0%         Duty (anti-dumping) £1,237
@@ -389,11 +389,11 @@ The most accurate trade cost calculator — backed by live customs data.
 ```typescript
 // app/page.tsx
 export const metadata = {
-  title: 'TradeCalc — Customs Import Duty Calculator with Live TARIC Data',
+  title: 'veritariffai — Customs Import Duty Calculator with Live TARIC Data',
   description: 'Calculate your true import costs with customs-grade accuracy. Anti-dumping duties, rules of origin, VAT, excise — all from live TARIC and UKGT data.',
   keywords: 'import duty calculator, customs duty calculator, TARIC, landed cost calculator, anti-dumping duty, rules of origin',
   openGraph: {
-    title: 'TradeCalc — Know exactly what your imports cost',
+    title: 'veritariffai — Know exactly what your imports cost',
     description: '...',
     image: '/og-image.png',  // 1200×630, dark design with product screenshot
   }

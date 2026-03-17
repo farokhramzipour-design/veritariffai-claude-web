@@ -85,7 +85,7 @@ const TeamPage: React.FC = () => {
         {/* Section Heading */}
         <div className="text-center mb-16">
           <p className="font-jetbrains-mono text-teal-accent uppercase text-sm tracking-widest mb-3 reveal">
-            // THE FOUNDERS
+            {'// THE FOUNDERS'}
           </p>
           <h1 className="font-syne font-extrabold text-5xl md:text-6xl text-white-light reveal">
             Meet Our Team

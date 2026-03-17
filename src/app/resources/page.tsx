@@ -75,7 +75,7 @@ const ResourcesPage = () => {
                 {/* Section Heading */}
                 <div className="text-center mb-16">
                     <div className="reveal d1 inline-block font-mono text-[#64FFDA] text-sm tracking-[0.2em] uppercase mb-4">
-                        // KNOWLEDGE BASE
+                        {'// KNOWLEDGE BASE'}
                     </div>
                     <h2 className="reveal d2 text-4xl md:text-5xl font-bold text-white tracking-tight">
                         Resources

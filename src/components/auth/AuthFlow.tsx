@@ -248,12 +248,12 @@ export default function AuthFlow() {
             exit={{ opacity: 0, x: -20 }}
             className="flex flex-col gap-4"
           >
-            <h2 className="text-2xl font-bold text-center mb-6">Welcome to TradeCalc</h2>
-            <Button onClick={() => setView('login')} variant="secondary" className="h-14 text-lg justify-between px-6">
-              <span>I have an account</span> <ChevronRight />
+            <h2 className="text-2xl font-bold text-center mb-6">Welcome to veritariffai</h2>
+            <Button onClick={() => setView('login')} variant="secondary" className="h-14 w-full text-lg justify-between px-6">
+              <span>I have an account</span> <ChevronRight className="w-5 h-5" />
             </Button>
-            <Button onClick={() => setView('signup-role')} className="h-14 text-lg justify-between px-6">
-              <span>I'm a new user</span> <ChevronRight />
+            <Button onClick={() => setView('signup-role')} className="h-14 w-full text-lg justify-between px-6">
+              <span>{"I'm a new user"}</span> <ChevronRight className="w-5 h-5" />
             </Button>
           </motion.div>
         )}

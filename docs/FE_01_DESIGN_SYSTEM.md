@@ -4,7 +4,7 @@
 
 **Concept: "The Instrument"**
 
-TradeCalc should feel like a precision instrument — the Bloomberg Terminal meets modern SaaS. Dark, confident, data-rich but never cluttered. Professionals trust tools that look like they were built for professionals.
+veritariffai should feel like a precision instrument — the Bloomberg Terminal meets modern SaaS. Dark, confident, data-rich but never cluttered. Professionals trust tools that look like they were built for professionals.
 
 This is NOT a playful startup aesthetic. This is NOT corporate blue gradients. This is a tool for people moving serious money across borders who need to trust their numbers.
 

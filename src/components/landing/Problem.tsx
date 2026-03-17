@@ -7,7 +7,7 @@ export default function Problem() {
           <h2 className="mt-2 text-4xl font-bold font-display">Getting import costs wrong is expensive.</h2>
           <p className="mt-4 text-text-secondary">
             Traditional brokers are slow and expensive. Spreadsheet estimates miss crucial details. 
-            Other "calculators" are too simple for real-world trade.
+            {'Other "calculators" are too simple for real-world trade.'}
           </p>
         </div>
         <div>

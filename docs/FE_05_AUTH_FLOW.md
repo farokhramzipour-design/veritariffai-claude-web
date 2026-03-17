@@ -37,7 +37,7 @@ that professionals trust."
 ```
 ┌─────────────────────────────────────┐
 │                                     │
-│   Welcome to TradeCalc              │
+│   Welcome to veritariffai          │
 │                                     │
 │   Sign in to save your              │
 │   calculations and unlock           │
@@ -108,7 +108,7 @@ First time a user signs in (new account), show a lightweight onboarding overlay 
 
 **Step 1: Welcome**
 ```
-👋 Welcome to TradeCalc
+👋 Welcome to veritariffai
 
 You're signed in as user@example.com
 
@@ -169,7 +169,7 @@ Modal:
 
 📦 Multiple HS Lines Require Pro
 
-You've added 2 lines. TradeCalc Pro supports
+You've added 2 lines. veritariffai Pro supports
 up to 500 lines per calculation.
 
 Free plan: 1 line   Pro plan: Up to 500 lines
