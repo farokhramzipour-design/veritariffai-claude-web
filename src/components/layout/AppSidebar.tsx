@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Calculator, 
-  History 
+import {
+  LayoutDashboard,
+  Calculator,
+  History,
+  Ship,
 } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
 
@@ -53,7 +54,19 @@ export default function AppSidebar() {
             <span className="font-display text-sm font-medium">New Calculation</span>
           </Link>
           
-          <Link 
+          <Link
+            href="/shipment/new"
+            className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
+              pathname?.startsWith('/shipment')
+                ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]'
+                : 'text-[var(--muted2)] hover:text-[var(--text)] hover:bg-[var(--s2)]'
+            }`}
+          >
+            <Ship size={20} />
+            <span className="font-display text-sm font-medium">Steel Export</span>
+          </Link>
+
+          <Link
             href="/history"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
               isActive('/history') 
