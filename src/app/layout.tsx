@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Syne, DM_Sans, Vazirmatn, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TokenHandler } from "@/components/TokenHandler";
-import { OnboardingCheck } from "@/components/auth/OnboardingCheck";
 import { Suspense } from "react";
 import "../styles/globals.css";
 
@@ -57,7 +56,6 @@ export default function RootLayout({
         >
           <Suspense fallback={null}>
             <TokenHandler />
-            <OnboardingCheck />
           </Suspense>
           {children}
         </ThemeProvider>
