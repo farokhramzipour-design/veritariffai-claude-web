@@ -109,7 +109,7 @@ export const Pricing = () => (
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
       >
-        <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">// Pricing</div>
+        <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">{'// Pricing'}</div>
         <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4">
           Monetising Strategy, Execution,<br />
           <span className="text-slate-400">and Infrastructure Across the Trade Stack.</span>

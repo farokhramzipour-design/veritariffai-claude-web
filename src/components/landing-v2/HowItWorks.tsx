@@ -108,7 +108,7 @@ export const HowItWorks = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">// How It Works</div>
+          <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">{'// How It Works'}</div>
           <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-6">
             The Intelligence Layer <br />
             <span className="text-slate-400">Above Your Logistics.</span>

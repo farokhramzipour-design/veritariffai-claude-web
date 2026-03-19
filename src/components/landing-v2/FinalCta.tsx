@@ -18,14 +18,14 @@ export const FinalCta = () => (
       viewport={{ once: true }}
     >
       <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">
-        // Veritariff — The Trade Compliance OS for SMEs
+        {'// Veritariff — The Trade Compliance OS for SMEs'}
       </div>
       <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4">
         Stop bleeding profit at the border. <br />
         <span className="text-[#64FFDA]">Start controlling your trade.</span>
       </h2>
       <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-        HS classification, duties, sanctions, CBAM, customs declarations, and the Barrister's Bundle — in one platform.
+        HS classification, duties, sanctions, CBAM, customs declarations, and the Barrister&apos;s Bundle — in one platform.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center">

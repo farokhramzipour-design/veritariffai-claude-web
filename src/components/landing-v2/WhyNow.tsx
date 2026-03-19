@@ -51,7 +51,7 @@ export const WhyNow = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">// Why Now</div>
+          <div className="text-[#64FFDA] font-mono text-sm tracking-widest mb-4 uppercase">{'// Why Now'}</div>
           <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4">
             The world is re-bilateralising. <br />
             <span className="text-slate-400">Your margins are paying for it.</span>
