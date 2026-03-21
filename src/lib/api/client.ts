@@ -7,9 +7,16 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
+// Read token from cookie directly (used as fallback before store hydrates)
+function getTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 // Request interceptor to inject the auth token
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
+  const token = useAuthStore.getState().accessToken ?? getTokenFromCookie();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
