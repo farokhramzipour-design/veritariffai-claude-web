@@ -115,6 +115,7 @@ export const Pricing = () => (
           <span className="text-slate-400">and Infrastructure Across the Trade Stack.</span>
         </h2>
         <p className="text-slate-400 text-lg">Stop paying £50k for consultants. Start with Veritariff.</p>
+        <p className="text-slate-500 text-sm mt-3">Most SMEs recover the monthly cost on their first CBAM-compliant shipment.</p>
       </motion.div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,8 +1,7 @@
 import { HeroSection } from '@/components/landing-v2/HeroSection';
+import { FeatureStrip } from '@/components/landing-v2/FeatureStrip';
 import { ProblemSolution } from '@/components/landing-v2/ProblemSolution';
 import { HowItWorks } from '@/components/landing-v2/HowItWorks';
-import { GlobalPainPoints } from '@/components/landing-v2/GlobalPainPoints';
-import { WhyNow } from '@/components/landing-v2/WhyNow';
 import { Corridors } from '@/components/landing-v2/Corridors';
 import { Pricing } from '@/components/landing-v2/Pricing';
 import { FinalCta } from '@/components/landing-v2/FinalCta';
@@ -17,10 +16,9 @@ export default function LandingPage() {
       <HeaderWrapper />
       <main className="relative z-10">
         <HeroSection />
+        <FeatureStrip />
         <ProblemSolution />
         <HowItWorks />
-        <GlobalPainPoints />
-        <WhyNow />
         <Corridors />
         <Pricing />
         <FinalCta />

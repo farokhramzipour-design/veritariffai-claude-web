@@ -2,14 +2,14 @@
 import { motion } from 'framer-motion';
 
 const CORRIDORS = [
-  { name: "UK ↔ EU", status: "LIVE", color: "#0F6E56", flags: "🇬🇧🇩🇪🇫🇷🇳🇱🇮🇹🇪🇸", desc: "Full 7-step workflow. Steel, chemicals, agri-food. CBAM + TCA + CDS live." },
-  { name: "UK ↔ China", status: "Q3 2026", color: "#185FA5", flags: "🇬🇧🇨🇳", desc: "Section 301 engine. Entity List real-time screen. UFLPA chain tracing." },
-  { name: "All AfCFTA Nations", status: "Q4 2026", color: "#B7770D", flags: "🇳🇬🇿🇦🇰🇪🇪🇬🇬🇭🌍", desc: "All 54 AfCFTA nations. RoO navigator. PAPSS payments. SPS engine." },
-  { name: "UK ↔ US", status: "Q1 2027", color: "#534AB7", flags: "🇬🇧🇺🇸", desc: "USMCA alignment. State privacy stack. Customs bond automation." },
-  { name: "UK ↔ Australia", status: "Q1 2027", color: "#993C1D", flags: "🇬🇧🇦🇺", desc: "DAFF biosecurity pre-docs. JAEPA EDI formatter. Timber due diligence." },
-  { name: "Vietnam ↔ EU", status: "Q2 2027", color: "#3B6D11", flags: "🇻🇳🇩🇪🇫🇷🇮🇹", desc: "EVFTA corridor. China+1 re-routing. CBAM for Vietnamese manufacturers." },
-  { name: "UK ↔ Japan", status: "Q2 2027", color: "#C0392B", flags: "🇬🇧🇯🇵", desc: "UKJCEPA. NACCS declaration formatting. Japanese SPS + food labelling." },
-  { name: "Global ↔ Global", status: "2028", color: "#4a5568", flags: "🌐", desc: "Open API. Any corridor, any commodity. Veritariff as infrastructure." },
+  { name: "UK \u2194 EU", status: "LIVE", color: "#0F6E56", flags: "\uD83C\uDDEC\uD83C\uDDE7\uD83C\uDDE9\uD83C\uDDEA\uD83C\uDDEB\uD83C\uDDF7\uD83C\uDDF3\uD83C\uDDF1\uD83C\uDDEE\uD83C\uDDF9\uD83C\uDDEA\uD83C\uDDF8", desc: "Full 7-step workflow. Steel, chemicals, agri-food. CBAM + TCA + CDS live." },
+  { name: "UK \u2194 China", status: "Q3 2026", color: "#185FA5", flags: "\uD83C\uDDEC\uD83C\uDDE7\uD83C\uDDE8\uD83C\uDDF3", desc: "Section 301 engine. Entity List real-time screen. UFLPA chain tracing." },
+  { name: "All AfCFTA Nations", status: "Q4 2026", color: "#B7770D", flags: "\uD83C\uDDF3\uD83C\uDDEC\uD83C\uDDFF\uD83C\uDDE6\uD83C\uDDF0\uD83C\uDDEA\uD83C\uDDEA\uD83C\uDDEC\uD83C\uDDEC\uD83C\uDDED\uD83C\uDDEC\uD83C\uDDED\uD83C\uDDE8\uD83C\uDDEE\uD83C\uDF0D", desc: "All 54 AfCFTA nations. RoO navigator. PAPSS payments. SPS engine." },
+  { name: "UK \u2194 US", status: "Q1 2027", color: "#534AB7", flags: "\uD83C\uDDEC\uD83C\uDDE7\uD83C\uDDFA\uD83C\uDDF8", desc: "USMCA alignment. State privacy stack. Customs bond automation." },
+  { name: "UK \u2194 Australia", status: "Q1 2027", color: "#993C1D", flags: "\uD83C\uDDEC\uD83C\uDDE7\uD83C\uDDE6\uD83C\uDDFA", desc: "DAFF biosecurity pre-docs. JAEPA EDI formatter. Timber due diligence." },
+  { name: "Vietnam \u2194 EU", status: "Q2 2027", color: "#3B6D11", flags: "\uD83C\uDDFB\uD83C\uDDF3\uD83C\uDDE9\uD83C\uDDEA\uD83C\uDDEB\uD83C\uDDF7\uD83C\uDDEE\uD83C\uDDF9", desc: "EVFTA corridor. China+1 re-routing. CBAM for Vietnamese manufacturers." },
+  { name: "UK \u2194 Japan", status: "Q2 2027", color: "#C0392B", flags: "\uD83C\uDDEC\uD83C\uDDE7\uD83C\uDDEF\uD83C\uDDF5", desc: "UKJCEPA. NACCS declaration formatting. Japanese SPS + food labelling." },
+  { name: "Global \u2194 Global", status: "2028", color: "#4a5568", flags: "\uD83C\uDF10", desc: "Open API. Any corridor, any commodity. Veritariff as infrastructure." },
 ];
 
 export const Corridors = () => (
@@ -22,10 +22,10 @@ export const Corridors = () => (
         viewport={{ once: true }}
       >
         <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">
-          Trade Corridors
+          One platform. Every border.
         </h2>
         <p className="text-slate-500 text-lg">
-          All corridors are <span className="font-bold text-slate-700">↔ bidirectional</span>. One platform, any border.
+          All corridors are bidirectional — exporting or importing, Veritariff handles both directions.
         </p>
       </motion.div>
 
@@ -59,7 +59,7 @@ export const Corridors = () => (
             <p className="text-slate-500 text-xs leading-relaxed">{c.desc}</p>
             {c.status !== 'LIVE' && (
               <p className="text-xs mt-3 font-medium" style={{ color: c.color }}>
-                → Notify me when live
+                \u2192 Notify me when live
               </p>
             )}
           </motion.div>
