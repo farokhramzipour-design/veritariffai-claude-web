@@ -73,7 +73,7 @@ const CalculatorPage = () => {
         })),
       };
 
-      const result = await calculationsApi.submitSync(request) as Record<string, unknown>;
+      const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
       setCalcResult(result);
       setCalcRequestId((result?.request_id ?? result?.id ?? null) as string | null);
       setShowResults(true);
