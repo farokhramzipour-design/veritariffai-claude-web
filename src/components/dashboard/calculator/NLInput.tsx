@@ -20,7 +20,7 @@ export const NLInput = () => {
 
     setIsLoading(true);
     try {
-      const data = await autofillApi.autofill({ description: input }) as Record<string, unknown>;
+      const data = await autofillApi.autofill({ description: input }) as unknown as Record<string, unknown>;
 
       setStep1({
         originCountry: (data.origin_country as string) || undefined,
