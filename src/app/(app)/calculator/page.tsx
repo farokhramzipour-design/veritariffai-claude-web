@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
@@ -8,7 +8,7 @@ import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
 
-const CalculatorPage = () => {
+const CalculatorInner = () => {
   const searchParams = useSearchParams();
   const [showResults, setShowResults] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -138,4 +138,10 @@ const CalculatorPage = () => {
   );
 };
 
-export default CalculatorPage;
+export default function CalculatorPage() {
+  return (
+    <Suspense>
+      <CalculatorInner />
+    </Suspense>
+  );
+}
