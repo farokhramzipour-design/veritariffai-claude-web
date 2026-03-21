@@ -59,7 +59,7 @@ export const Corridors = () => (
             <p className="text-slate-500 text-xs leading-relaxed">{c.desc}</p>
             {c.status !== 'LIVE' && (
               <p className="text-xs mt-3 font-medium" style={{ color: c.color }}>
-                \u2192 Notify me when live
+                → Notify me when live
               </p>
             )}
           </motion.div>
