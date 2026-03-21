@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ChevronRight, ChevronLeft, Globe, Info, CheckCircle, AlertTriangle,
-  XCircle, Upload, FileText, Zap, Shield, Search, AlertOctagon,
+  XCircle, Upload, FileText, Zap, Shield, Search, AlertOctagon, Loader2,
 } from 'lucide-react';
 import { useShipmentStore } from '@/lib/stores/shipmentStore';
+import { originApi } from '@/lib/api/origin';
+import { complianceApi } from '@/lib/api/compliance';
 
 interface Props {
   onNext: () => void;
@@ -84,7 +86,14 @@ function UploadZone({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
-  const { origin, updateOrigin, markStepComplete, classification } = useShipmentStore();
+  const { origin, updateOrigin, markStepComplete, classification, shipmentId } = useShipmentStore();
+
+  const [rooLoading, setRooLoading] = useState(false);
+  const [rooError, setRooError] = useState('');
+  const [declarationLoading, setDeclarationLoading] = useState(false);
+  const [declarationError, setDeclarationError] = useState('');
+  const [cslLoading, setCslLoading] = useState(false);
+  const [cslError, setCslError] = useState('');
 
   const mfnRate = parseFloat(origin.mfnDutyRate) || 0;
   const consignmentValue = parseFloat(origin.consignmentValueEUR) || 0;
@@ -147,38 +156,78 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
   };
 
   // ── Gate 3E: Determine Origin ──
-  const handleDetermineOrigin = () => {
-    if (origin.whollyObtained === true) {
-      updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: 'Wholly Obtained — TCA Art.ORIG.5', cumulationStatement: 'No cumulation applied' });
-      return;
-    }
-    const hasSufficientOp = origin.sufficientOps.some(op => SUFFICIENT_OPS.find(o => o.id === op)?.sufficient);
-    const melt = origin.meltCountry.toUpperCase();
-    const pour = origin.pourCountry.toUpperCase();
-    const meltRU = melt === 'RU';
+  const handleDetermineOrigin = async () => {
+    setRooLoading(true);
+    setRooError('');
+    try {
+      const res = await originApi.rooCheck({
+        hs_code: classification.commodityCode || classification.hsHeading || '7224',
+        origin_country: origin.meltCountry.toUpperCase() || 'GB',
+        destination_country: 'DE',
+        wholly_obtained: origin.whollyObtained ?? false,
+        last_substantial_transformation_country: (origin.meltCountry.toUpperCase() === 'GB' && origin.pourCountry.toUpperCase() === 'GB') ? 'GB' : null,
+        tca_preference_claimed: true,
+        exporter_ref: origin.eoriNumber || undefined,
+        shipment_value_gbp: parseFloat(origin.consignmentValueEUR) || undefined,
+      }) as Record<string, unknown>;
 
-    if (meltRU) {
-      updateOrigin({ originResult: 'NOT_ORIGINATING', originBasis: 'RU melt origin — BLOCKED' });
-      return;
-    }
+      // Map API response to store
+      const status = (res.origin_status ?? res.status ?? res.result) as string | undefined;
+      const basis = (res.basis ?? res.rule_applied ?? res.reasoning ?? '') as string;
+      const cumulation = (res.cumulation_applied ? 'Cumulation applied with EU' : 'No cumulation applied') as string;
 
-    if (origin.cthSatisfied && hasSufficientOp) {
-      if (origin.cumulationApplied) {
-        updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: 'CTH + EU Cumulation (TCA Art.ORIG.3)', cumulationStatement: 'Cumulation applied with EU' });
+      if (status?.toLowerCase().includes('originating') && !status?.toLowerCase().includes('not')) {
+        updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: basis || 'UK Originating — TCA', cumulationStatement: cumulation });
+      } else if (status?.toLowerCase().includes('not')) {
+        updateOrigin({ originResult: 'NOT_ORIGINATING', originBasis: basis || 'Not originating' });
       } else {
-        updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: 'CTH + Melt/Pour UK (TCA Art.ORIG.19)', cumulationStatement: 'No cumulation applied' });
+        // Fallback: derive locally if API doesn't return a clear status
+        const hasSufficientOp = origin.sufficientOps.some(op => SUFFICIENT_OPS.find(o => o.id === op)?.sufficient);
+        const meltRU = origin.meltCountry.toUpperCase() === 'RU';
+        if (meltRU) {
+          updateOrigin({ originResult: 'NOT_ORIGINATING', originBasis: basis || 'RU melt origin — BLOCKED' });
+        } else if (origin.whollyObtained) {
+          updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: basis || 'Wholly Obtained — TCA Art.ORIG.5', cumulationStatement: 'No cumulation applied' });
+        } else if (origin.cthSatisfied && hasSufficientOp) {
+          updateOrigin({ originResult: 'UK_ORIGINATING', originBasis: basis || (origin.cumulationApplied ? 'CTH + EU Cumulation (TCA Art.ORIG.3)' : 'CTH + Melt/Pour UK (TCA Art.ORIG.19)'), cumulationStatement: cumulation });
+        } else {
+          updateOrigin({ originResult: 'NOT_ORIGINATING', originBasis: basis || 'CTH not satisfied / insufficient processing' });
+        }
       }
-    } else {
-      updateOrigin({ originResult: 'NOT_ORIGINATING', originBasis: 'CTH not satisfied / insufficient processing' });
+    } catch (err) {
+      setRooError(err instanceof Error ? err.message : 'RoO check failed');
+    } finally {
+      setRooLoading(false);
     }
   };
 
   // ── Gate 3F: Generate Statement ──
-  const handleGenerateStatement = () => {
+  const handleGenerateStatement = async () => {
     const text = TCA_WORDING
       .replace('[EORI]', origin.eoriNumber || '[GB EORI]')
       + `\n\n${origin.cumulationStatement || 'No cumulation applied'}`;
+    // Optimistically show the text immediately
     updateOrigin({ statementOnOriginGenerated: true, statementOnOriginText: text, tcaPreferenceClaimed: true });
+
+    setDeclarationLoading(true);
+    setDeclarationError('');
+    try {
+      const res = await originApi.createDeclaration({
+        shipment_ref: shipmentId || 'SHIP-DRAFT',
+        hs_code: classification.commodityCode || classification.hsHeading || '7224',
+        origin_country: 'GB',
+        destination_country: 'DE',
+        exporter_ref: origin.eoriNumber || 'GB-UNKNOWN',
+        declaration_text: text,
+        signed: true,
+      }) as Record<string, unknown>;
+      const declId = (res.declaration_id ?? res.id ?? null) as string | null;
+      if (declId) updateOrigin({ declarationId: declId });
+    } catch (err) {
+      setDeclarationError(err instanceof Error ? err.message : 'Declaration submission failed');
+    } finally {
+      setDeclarationLoading(false);
+    }
   };
 
   // ── TRQ stub ──
@@ -187,11 +236,40 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
     updateOrigin({ trqStatus: 'in_quota', trqPercentRemaining: 43 });
   };
 
-  // ── CSL stub ──
-  const handleScreenCSL = () => {
-    // Stub — real: call ITA CSL API at api.trade.gov
+  // ── CSL Screening ──
+  const handleScreenCSL = async () => {
     if (!origin.cslPartyName.trim()) return;
-    updateOrigin({ cslScreeningStatus: 'PASS', cslMatchedEntity: null, cslConfidenceScore: 0 });
+    setCslLoading(true);
+    setCslError('');
+    try {
+      const res = await complianceApi.sanctionsScreen({
+        exporter_country: 'GB',
+        importer_country: 'DE',
+        party_names: [origin.cslPartyName.trim()],
+        hs_code: classification.commodityCode || classification.hsHeading || '7224',
+        origin_country: 'GB',
+        destination_country: 'DE',
+        jurisdiction: 'UK',
+      }) as Record<string, unknown>;
+
+      const status = (res.status ?? res.screening_status ?? '') as string;
+      const matched = (res.matched_entity ?? res.party_match ?? null) as string | null;
+      const score = (res.confidence_score ?? res.score ?? null) as number | null;
+
+      let cslStatus: 'PASS' | 'AMBER' | 'HARD_BLOCK' = 'PASS';
+      const statusUpper = status.toUpperCase();
+      if (statusUpper === 'BLOCKED' || statusUpper === 'HARD_BLOCK' || (score !== null && score >= 0.95)) {
+        cslStatus = 'HARD_BLOCK';
+      } else if (statusUpper === 'AMBER' || statusUpper === 'REVIEW' || (score !== null && score >= 0.7)) {
+        cslStatus = 'AMBER';
+      }
+
+      updateOrigin({ cslScreeningStatus: cslStatus, cslMatchedEntity: matched, cslConfidenceScore: score });
+    } catch (err) {
+      setCslError(err instanceof Error ? err.message : 'Screening failed');
+    } finally {
+      setCslLoading(false);
+    }
   };
 
   const handleNext = () => {
@@ -536,12 +614,16 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
             <Section highlight={origin.originResult === 'UK_ORIGINATING' ? 'cyan' : origin.originResult === 'NOT_ORIGINATING' ? 'red' : undefined}>
               <GateHeader num="3E" title="Gate 3E — Origin Result" />
               {!origin.originResult && (
+                <>
                 <button
                   onClick={handleDetermineOrigin}
-                  className="px-5 py-2.5 bg-[rgba(100,255,218,0.1)] border border-[var(--cyan)] text-[var(--cyan)] rounded-lg font-mono text-xs font-bold hover:bg-[rgba(100,255,218,0.2)] transition-colors"
+                  disabled={rooLoading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[rgba(100,255,218,0.1)] border border-[var(--cyan)] text-[var(--cyan)] rounded-lg font-mono text-xs font-bold hover:bg-[rgba(100,255,218,0.2)] disabled:opacity-50 transition-colors"
                 >
-                  Determine Origin
+                  {rooLoading ? <><Loader2 size={12} className="animate-spin" /> Checking…</> : 'Determine Origin'}
                 </button>
+                {rooError && <p className="font-mono text-xs text-red-400 mt-2">{rooError}</p>}
+                </>
               )}
               {origin.originResult === 'UK_ORIGINATING' && (
                 <div className="flex gap-3 bg-[rgba(100,255,218,0.06)] border border-[rgba(100,255,218,0.2)] rounded-lg p-5">
@@ -621,12 +703,13 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
               ) : (
                 <button
                   onClick={handleGenerateStatement}
-                  disabled={!!needsEORI && !origin.eoriNumber}
-                  className="px-5 py-2.5 bg-[rgba(100,255,218,0.1)] border border-[var(--cyan)] text-[var(--cyan)] rounded-lg font-mono text-xs font-bold hover:bg-[rgba(100,255,218,0.2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  disabled={(!!needsEORI && !origin.eoriNumber) || declarationLoading}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[rgba(100,255,218,0.1)] border border-[var(--cyan)] text-[var(--cyan)] rounded-lg font-mono text-xs font-bold hover:bg-[rgba(100,255,218,0.2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  Generate Statement of Origin
+                  {declarationLoading ? <><Loader2 size={12} className="animate-spin" /> Submitting…</> : 'Generate Statement of Origin'}
                 </button>
               )}
+              {declarationError && <p className="font-mono text-xs text-red-400 mt-2">{declarationError}</p>}
             </Section>
           )}
 
@@ -881,12 +964,13 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
               />
               <button
                 onClick={handleScreenCSL}
-                disabled={!origin.cslPartyName.trim()}
+                disabled={!origin.cslPartyName.trim() || cslLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-[rgba(100,255,218,0.1)] border border-[var(--cyan)] text-[var(--cyan)] rounded-md font-mono text-xs hover:bg-[rgba(100,255,218,0.2)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <Search size={12} /> Screen
+                {cslLoading ? <><Loader2 size={12} className="animate-spin" /> Screening…</> : <><Search size={12} /> Screen</>}
               </button>
             </div>
+            {cslError && <p className="font-mono text-xs text-red-400 mt-2">{cslError}</p>}
           </div>
 
           {/* Demo override buttons */}

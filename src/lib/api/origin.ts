@@ -6,7 +6,7 @@ import type {
 
 export const originApi = {
   rooCheck: (data: ROOCheckRequest) =>
-    apiClient.post('/api/v1/origin/roo-check', data),
+    apiClient.post('/api/v1/origin/roo', data),
 
   createDeclaration: (data: OriginDeclarationRequest) =>
     apiClient.post('/api/v1/origin/declaration', data),

@@ -93,6 +93,9 @@ export interface OriginData {
   cslScreeningStatus: CSLStatus | null;
   cslMatchedEntity: string | null;
   cslConfidenceScore: number | null;
+
+  // Origin declaration (returned by POST /api/v1/origin/declaration)
+  declarationId: string | null;
 }
 
 // ─── Step 3: Sanctions ─────────────────────────────────────────────────────
@@ -494,6 +497,7 @@ const initialOrigin: OriginData = {
   cslScreeningStatus: null,
   cslMatchedEntity: null,
   cslConfidenceScore: null,
+  declarationId: null,
 };
 
 const initialSanctions: SanctionsData = {
