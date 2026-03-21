@@ -160,7 +160,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
     setRooLoading(true);
     setRooError('');
     try {
-      const res = await originApi.rooCheck({
+      const res = (await originApi.rooCheck({
         hs_code: classification.commodityCode || classification.hsHeading || '7224',
         origin_country: origin.meltCountry.toUpperCase() || 'GB',
         destination_country: 'DE',
@@ -169,7 +169,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
         tca_preference_claimed: true,
         exporter_ref: origin.eoriNumber || undefined,
         shipment_value_gbp: parseFloat(origin.consignmentValueEUR) || undefined,
-      }) as Record<string, unknown>;
+      }) as unknown) as Record<string, unknown>;
 
       // Map API response to store
       const status = (res.origin_status ?? res.status ?? res.result) as string | undefined;
@@ -212,7 +212,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
     setDeclarationLoading(true);
     setDeclarationError('');
     try {
-      const res = await originApi.createDeclaration({
+      const res = (await originApi.createDeclaration({
         shipment_ref: shipmentId || 'SHIP-DRAFT',
         hs_code: classification.commodityCode || classification.hsHeading || '7224',
         origin_country: 'GB',
@@ -220,7 +220,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
         exporter_ref: origin.eoriNumber || 'GB-UNKNOWN',
         declaration_text: text,
         signed: true,
-      }) as Record<string, unknown>;
+      }) as unknown) as Record<string, unknown>;
       const declId = (res.declaration_id ?? res.id ?? null) as string | null;
       if (declId) updateOrigin({ declarationId: declId });
     } catch (err) {
@@ -242,7 +242,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
     setCslLoading(true);
     setCslError('');
     try {
-      const res = await complianceApi.sanctionsScreen({
+      const res = (await complianceApi.sanctionsScreen({
         exporter_country: 'GB',
         importer_country: 'DE',
         party_names: [origin.cslPartyName.trim()],
@@ -250,7 +250,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
         origin_country: 'GB',
         destination_country: 'DE',
         jurisdiction: 'UK',
-      }) as Record<string, unknown>;
+      }) as unknown) as Record<string, unknown>;
 
       const status = (res.status ?? res.screening_status ?? '') as string;
       const matched = (res.matched_entity ?? res.party_match ?? null) as string | null;
