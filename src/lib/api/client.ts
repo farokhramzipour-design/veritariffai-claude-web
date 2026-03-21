@@ -16,7 +16,11 @@ function getTokenFromCookie(): string | null {
 
 // Request interceptor to inject the auth token
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken ?? getTokenFromCookie();
+  const storeToken = useAuthStore.getState().accessToken;
+  const cookieToken = getTokenFromCookie();
+  const token = storeToken ?? cookieToken;
+  console.log("[apiClient] store token:", storeToken ? storeToken.slice(0, 20) + "…" : null);
+  console.log("[apiClient] cookie token:", cookieToken ? cookieToken.slice(0, 20) + "…" : null);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

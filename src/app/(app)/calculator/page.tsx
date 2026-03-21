@@ -73,12 +73,19 @@ const CalculatorInner = () => {
         })),
       };
 
+      console.log("[calc] request →", JSON.stringify(request, null, 2));
       const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
+      console.log("[calc] response →", JSON.stringify(result, null, 2));
       setCalcResult(result);
       setCalcRequestId((result?.request_id ?? result?.id ?? null) as string | null);
       setShowResults(true);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Calculation failed. Please try again.");
+      const msg = err instanceof Error ? err.message : "Calculation failed.";
+      // Surface the raw error object if available (API validation errors, etc.)
+      const detail = typeof err === "object" && err !== null && "detail" in err
+        ? JSON.stringify((err as Record<string, unknown>).detail)
+        : null;
+      setErrorMsg(detail ? `${msg} — ${detail}` : msg);
     } finally {
       setIsCalculating(false);
     }
