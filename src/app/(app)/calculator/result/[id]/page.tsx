@@ -40,7 +40,7 @@ export default function ResultPage() {
         ]);
 
         if (res.status === "fulfilled") {
-          setResult(res.value as Record<string, unknown>);
+          setResult(res.value as unknown as Record<string, unknown>);
         } else {
           throw new Error((res.reason as Error)?.message ?? "Failed to load result.");
         }
