@@ -265,11 +265,11 @@ export default function ProfilesPage() {
                 </div>
 
                 <div className="flex items-center gap-3 text-[10px] font-mono text-[var(--muted2)] mb-4">
-                  {profile.shipment_data?.origin && profile.shipment_data?.destination && (
+                  {typeof profile.shipment_data?.origin === "string" && typeof profile.shipment_data?.destination === "string" && (
                     <span>
-                      {profile.shipment_data.origin as string}
+                      {profile.shipment_data.origin}
                       <span className="text-[var(--cyan)] mx-1">→</span>
-                      {profile.shipment_data.destination as string}
+                      {profile.shipment_data.destination}
                     </span>
                   )}
                   {profile.lines_data && (
