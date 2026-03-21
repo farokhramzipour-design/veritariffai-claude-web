@@ -2,90 +2,151 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, CheckCircle, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Save, Loader2, CheckCircle, Copy, Check,
+  ChevronDown, ChevronUp, Zap,
+} from "lucide-react";
 import { ConfidenceMeter } from "./results/ConfidenceMeter";
 import { CostTable } from "./results/CostTable";
 import { WarningCards } from "./results/WarningCards";
-import { RoODetail } from "./results/RoODetail";
 import { ResultsActions } from "./results/ResultsActions";
 import { calculationsApi } from "@/lib/api/calculations";
 
-// ─── Type aliases (matching sub-component props) ────────────────────────────
+// ─── API response types ───────────────────────────────────────────────────────
+
+interface MoneyAmount { amount: string; currency: string }
+
+interface ApiTotals {
+  customs_value?: MoneyAmount;
+  total_duty?: MoneyAmount;
+  total_vat?: MoneyAmount;
+  total_excise?: MoneyAmount;
+  total_clearance?: MoneyAmount;
+  total_landed_cost?: MoneyAmount;
+}
+
+interface ApiLineResult {
+  hs_code?: string;
+  description?: string;
+  duty_rate?: number;
+  vat_rate?: number;
+  duty_amount?: MoneyAmount;
+  vat_amount?: MoneyAmount;
+  landed_cost?: MoneyAmount;
+  [key: string]: unknown;
+}
+
+interface ApiWarning {
+  code?: string;
+  title?: string;
+  message?: string;
+  severity?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface ApiData {
+  request_id?: string;
+  status?: string;
+  confidence_score?: number;
+  totals?: ApiTotals;
+  line_results?: ApiLineResult[];
+  warnings?: ApiWarning[];
+  audit_trail_available?: boolean;
+  engines_used?: string[];
+  [key: string]: unknown;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 type CostItem = { component: string; rate: string; amount_gbp: number; amount_eur: number; amount_usd: number };
 type TotalCost = { gbp: number; eur: number; usd: number };
 type Warning = { type: "warning" | "info"; title: string; message: string; action?: string };
-type RoOData = { qualifies: "yes" | "no" | "uncertain"; confidence: number; tca_rule: string; reasoning: string; recommended_actions: string[] };
 type ConfidenceFactor = { factor: string; contribution: number; source: "LIVE" | "STATIC" | "AI" | "CHECKED" | "LIVE 1h cache" };
 
-function n(v: unknown): number { return typeof v === "number" ? v : parseFloat(String(v ?? 0)) || 0; }
-function s(v: unknown): string { return v == null ? "" : String(v); }
+function money(m?: MoneyAmount): number {
+  return m ? parseFloat(m.amount) || 0 : 0;
+}
 
-function extractDisplay(result: Record<string, unknown>) {
-  const confidence = n(result.confidence ?? result.confidence_score ?? result.estimate_confidence ?? 0);
+function pct(rate?: number): string {
+  if (rate == null) return "—";
+  return `${(rate * (rate <= 1 ? 100 : 1)).toFixed(1)}%`;
+}
 
-  const rawFactors = (result.confidence_factors ?? result.factors ?? []) as Array<Record<string, unknown>>;
-  const factors: ConfidenceFactor[] = rawFactors.map(f => ({
-    factor: s(f.factor ?? f.name ?? f.component),
-    contribution: n(f.contribution ?? f.weight ?? f.score),
-    source: s(f.source ?? "LIVE") as ConfidenceFactor["source"],
-  }));
+function unwrap(result: Record<string, unknown>): ApiData {
+  // Response shape: { data: ApiData, meta: {...} }
+  if (result.data && typeof result.data === "object") return result.data as ApiData;
+  return result as ApiData;
+}
 
-  // Try multiple possible shapes for line items
-  const rawLines = (
-    result.lines ?? result.line_results ?? result.line_items ?? result.cost_breakdown ?? []
-  ) as Array<Record<string, unknown>>;
+function buildBreakdown(data: ApiData): CostItem[] {
+  const t = data.totals ?? {};
+  const rows: Array<{ label: string; rate: string; value?: MoneyAmount }> = [
+    { label: "Customs Value",   rate: "—",             value: t.customs_value },
+    { label: "Import Duty",     rate: pct(undefined),  value: t.total_duty },
+    { label: "Import VAT",      rate: pct(undefined),  value: t.total_vat },
+    { label: "Excise Duty",     rate: "—",             value: t.total_excise },
+    { label: "Clearance Fees",  rate: "—",             value: t.total_clearance },
+  ];
 
-  const breakdown: CostItem[] = rawLines.flatMap((l) => {
-    // Each line might itself have a breakdown array
-    const inner = (l.breakdown ?? l.duties ?? l.charges ?? []) as Array<Record<string, unknown>>;
-    if (inner.length) {
-      return inner.map(item => ({
-        component: s(item.component ?? item.name ?? item.type ?? l.hs_code ?? "Charge"),
-        rate: item.rate != null ? `${n(item.rate) * (n(item.rate) <= 1 ? 100 : 1)}%` : "—",
-        amount_gbp: n(item.amount_gbp ?? item.amount ?? item.value_gbp),
-        amount_eur: n(item.amount_eur ?? item.value_eur ?? 0),
-        amount_usd: n(item.amount_usd ?? item.value_usd ?? 0),
-      }));
-    }
-    return [{
-      component: s(l.component ?? l.description ?? l.hs_code ?? l.name ?? "Line item"),
-      rate: l.duty_rate != null ? `${n(l.duty_rate) * (n(l.duty_rate) <= 1 ? 100 : 1)}%`
-          : l.import_duty_rate != null ? `${n(l.import_duty_rate) * 100}%`
-          : l.rate != null ? s(l.rate) : "—",
-      amount_gbp: n(l.amount_gbp ?? l.total_gbp ?? l.landed_cost_gbp ?? l.customs_value_gbp ?? l.duty_gbp),
-      amount_eur: n(l.amount_eur ?? l.total_eur ?? 0),
-      amount_usd: n(l.amount_usd ?? l.total_usd ?? 0),
-    }];
-  });
+  // If we have line_results, extract rates from first line
+  const firstLine = data.line_results?.[0];
+  if (firstLine) {
+    const dutyRow = rows.find(r => r.label === "Import Duty");
+    const vatRow  = rows.find(r => r.label === "Import VAT");
+    if (dutyRow && firstLine.duty_rate != null) dutyRow.rate = pct(firstLine.duty_rate as number);
+    if (vatRow  && firstLine.vat_rate  != null) vatRow.rate  = pct(firstLine.vat_rate  as number);
+  }
 
-  const t = (result.totals ?? result.total ?? result.summary ?? {}) as Record<string, unknown>;
-  const total: TotalCost = {
-    gbp: n(t.gbp ?? t.total_gbp ?? t.total_landed_cost_gbp ?? result.total_landed_cost_gbp ?? result.total_gbp ?? result.landed_cost_gbp),
-    eur: n(t.eur ?? t.total_eur ?? t.total_landed_cost_eur ?? result.total_landed_cost_eur),
-    usd: n(t.usd ?? t.total_usd ?? t.total_landed_cost_usd ?? result.total_landed_cost_usd),
-  };
+  return rows
+    .filter(r => money(r.value) > 0 || r.label === "Customs Value")
+    .map(r => ({
+      component: r.label,
+      rate: r.rate,
+      amount_gbp: money(r.value),
+      amount_eur: 0,
+      amount_usd: 0,
+    }));
+}
 
-  const rawWarnings = (result.warnings ?? result.issues ?? result.alerts ?? []) as Array<Record<string, unknown>>;
-  const warnings: Warning[] = rawWarnings.map(w => ({
-    type: s(w.type ?? w.severity ?? "info").toLowerCase().includes("warn") ? "warning" : "info",
-    title: s(w.title ?? w.code ?? w.name ?? "Notice"),
-    message: s(w.message ?? w.detail ?? w.description ?? ""),
-    action: w.action ? s(w.action) : undefined,
-  }));
+// ─── Raw JSON collapsible ─────────────────────────────────────────────────────
 
-  const rooRaw = (result.roo ?? result.rules_of_origin ?? result.origin_analysis) as Record<string, unknown> | undefined;
-  const roo: RoOData | null = rooRaw ? {
-    qualifies: s(rooRaw.qualifies ?? rooRaw.status ?? rooRaw.result ?? "uncertain").toLowerCase() as RoOData["qualifies"],
-    confidence: n(rooRaw.confidence ?? rooRaw.confidence_score ?? 0),
-    tca_rule: s(rooRaw.tca_rule ?? rooRaw.rule ?? rooRaw.applicable_rule ?? "—"),
-    reasoning: s(rooRaw.reasoning ?? rooRaw.explanation ?? rooRaw.notes ?? ""),
-    recommended_actions: Array.isArray(rooRaw.recommended_actions) ? (rooRaw.recommended_actions as unknown[]).map(s) : [],
-  } : null;
+function RawResult({ result }: { result: Record<string, unknown> }) {
+  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+  const json = JSON.stringify(result, null, 2);
 
-  return { confidence, factors, breakdown, total, warnings, roo };
+  return (
+    <div className="mb-6 border border-[var(--border)] rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--s2)] text-xs font-mono text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
+      >
+        <span>Raw API response</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[var(--muted)]">{Object.keys(result).length} keys</span>
+          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </div>
+      </button>
+      {open && (
+        <div className="relative">
+          <button
+            onClick={() => { navigator.clipboard.writeText(json); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-[var(--s3)] text-[10px] text-[var(--muted2)] hover:text-[var(--text)] z-10"
+          >
+            {copied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
+          </button>
+          <pre className="p-4 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] max-h-80 overflow-y-auto">
+            {json}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Dummy preview data ──────────────────────────────────────────────────────
+
 const DUMMY_FACTORS: ConfidenceFactor[] = [
   { factor: "HS Code accuracy", contribution: 30, source: "LIVE" },
   { factor: "Duty rate", contribution: 25, source: "LIVE" },
@@ -95,68 +156,19 @@ const DUMMY_FACTORS: ConfidenceFactor[] = [
   { factor: "FX rate", contribution: 5, source: "LIVE 1h cache" },
 ];
 const DUMMY_BREAKDOWN: CostItem[] = [
-  { component: "Declared Value", rate: "—", amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
-  { component: "Import Duty (MFN)", rate: "4.5%", amount_gbp: 90, amount_eur: 105.3, amount_usd: 117 },
-  { component: "Import VAT", rate: "20%", amount_gbp: 418, amount_eur: 489.06, amount_usd: 543.4 },
+  { component: "Customs Value",   rate: "—",    amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
+  { component: "Import Duty",     rate: "4.5%", amount_gbp: 90,   amount_eur: 105.3,amount_usd: 117  },
+  { component: "Import VAT",      rate: "20%",  amount_gbp: 418,  amount_eur: 489,  amount_usd: 543  },
 ];
-const DUMMY_TOTAL: TotalCost = { gbp: 2508, eur: 2934.36, usd: 3260.4 };
+const DUMMY_TOTAL: TotalCost = { gbp: 2508, eur: 2934, usd: 3260 };
 const DUMMY_WARNINGS: Warning[] = [{
   type: "warning",
   title: "Rules of Origin — Preferential Rate NOT Applied",
   message: "This product may not qualify for the UK-EU TCA 0% preferential duty rate. Standard MFN rate of 4.5% has been applied.",
-  action: "View RoO Details",
 }];
-const DUMMY_ROO: RoOData = {
-  qualifies: "uncertain",
-  confidence: 62,
-  tca_rule: "Manufacture from materials of any heading, except from headings 64.01 to 64.05",
-  reasoning: "Unable to confirm origin of materials. If materials are sourced from UK/EU, the product likely qualifies.",
-  recommended_actions: ["Obtain supplier declaration confirming UK/EU origin of materials"],
-};
-
-// ─── Raw JSON viewer ─────────────────────────────────────────────────────────
-function RawResult({ result }: { result: Record<string, unknown> }) {
-  const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  const json = JSON.stringify(result, null, 2);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(json);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="mb-6 border border-[var(--border)] rounded-lg overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[var(--s2)] text-xs font-mono text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
-      >
-        <span>Raw API response</span>
-        <div className="flex items-center gap-2">
-          <span className="text-[var(--muted)]">{Object.keys(result).length} fields</span>
-          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </div>
-      </button>
-      {expanded && (
-        <div className="relative">
-          <button
-            onClick={handleCopy}
-            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-[var(--s3)] text-[10px] text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
-          >
-            {copied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
-          </button>
-          <pre className="p-4 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] max-h-96 overflow-y-auto">
-            {json}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
+
 interface ResultsPanelProps {
   result?: Record<string, unknown> | null;
   requestId?: string | null;
@@ -170,12 +182,30 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
   const [showSaveForm, setShowSaveForm] = useState(false);
 
   const isReal = !!result;
-  const { confidence, factors, breakdown, total, warnings, roo } = isReal
-    ? extractDisplay(result)
-    : { confidence: 91, factors: DUMMY_FACTORS, breakdown: DUMMY_BREAKDOWN, total: DUMMY_TOTAL, warnings: DUMMY_WARNINGS, roo: DUMMY_ROO };
 
-  const hasRealBreakdown = isReal && breakdown.length > 0;
-  const hasRealTotal = isReal && total.gbp > 0;
+  // Unwrap and parse the real API response
+  const data: ApiData | null = isReal ? unwrap(result) : null;
+
+  const confidence = data ? Math.round((data.confidence_score ?? 0) * 100) : 91;
+
+  const breakdown: CostItem[] = data ? buildBreakdown(data) : DUMMY_BREAKDOWN;
+  const total: TotalCost = data
+    ? { gbp: money(data.totals?.total_landed_cost), eur: 0, usd: 0 }
+    : DUMMY_TOTAL;
+
+  const warnings: Warning[] = data?.warnings?.map(w => ({
+    type: (w.severity ?? w.type ?? "info") === "warning" ? "warning" : "info",
+    title: w.title ?? w.code ?? "Notice",
+    message: w.message ?? "",
+  })) ?? (isReal ? [] : DUMMY_WARNINGS);
+
+  const factors: ConfidenceFactor[] = data?.engines_used?.map(e => ({
+    factor: e.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+    contribution: Math.round(100 / (data.engines_used?.length ?? 1)),
+    source: "LIVE" as const,
+  })) ?? DUMMY_FACTORS;
+
+  const effectiveRequestId = requestId ?? data?.request_id ?? null;
 
   const handleSaveProfile = async () => {
     if (!result || !saveName.trim()) return;
@@ -183,8 +213,8 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
     try {
       await calculationsApi.createProfile({
         name: saveName.trim(),
-        shipment_data: (result.input ?? result.request ?? {}) as Record<string, unknown>,
-        lines_data: (Array.isArray(result.lines) ? result.lines : [result]) as Record<string, unknown>[],
+        shipment_data: (data ?? {}) as Record<string, unknown>,
+        lines_data: (data?.line_results ?? [result]) as Record<string, unknown>[],
       });
       setSaveState("saved");
       setShowSaveForm(false);
@@ -196,13 +226,14 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
 
   return (
     <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 relative">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold text-[var(--text)]">
           {isReal ? "Calculation Results" : "Results Preview"}
         </h2>
-        {isReal && requestId && (
+        {isReal && effectiveRequestId && (
           <button
-            onClick={() => router.push(`/calculator/result/${requestId}`)}
+            onClick={() => router.push(`/calculator/result/${effectiveRequestId}`)}
             className="text-xs text-[var(--cyan)] hover:underline font-mono"
           >
             Full report →
@@ -210,40 +241,43 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
         )}
       </div>
 
+      {/* Preview notice */}
       {!isReal && (
         <div className="mb-4 px-3 py-2 bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.15)] rounded text-xs text-[var(--muted2)] font-mono">
           Sample data — fill in origin, destination, and HS code then click Calculate.
         </div>
       )}
 
-      {/* Always show raw API response first when we have a real result */}
+      {/* Status + engines badge row */}
+      {isReal && data && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono uppercase border ${
+            data.status === "complete"
+              ? "bg-green-500/10 border-green-500/30 text-green-400"
+              : "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${data.status === "complete" ? "bg-green-400" : "bg-yellow-400"}`} />
+            {data.status ?? "processing"}
+          </span>
+          {data.engines_used?.map(e => (
+            <span key={e} className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.15)] text-[var(--cyan)]">
+              <Zap size={9} /> {e.replace(/_/g, " ")}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Raw response viewer */}
       {isReal && <RawResult result={result} />}
 
-      {/* Confidence meter — show if we have a value or using dummy */}
-      {(confidence > 0 || !isReal) && (
-        <ConfidenceMeter
-          confidence={confidence}
-          factors={factors.length ? factors : DUMMY_FACTORS}
-        />
-      )}
+      {/* Confidence */}
+      <ConfidenceMeter confidence={confidence} factors={factors} />
 
-      {/* Cost table — show if we have real data or using dummy */}
-      {(hasRealBreakdown || !isReal) && (
-        <CostTable
-          breakdown={hasRealBreakdown ? breakdown : DUMMY_BREAKDOWN}
-          total={hasRealTotal ? total : DUMMY_TOTAL}
-        />
-      )}
+      {/* Cost table */}
+      <CostTable breakdown={breakdown} total={total} />
 
       {/* Warnings */}
-      {((isReal && warnings.length > 0) || !isReal) && (
-        <WarningCards warnings={warnings.length ? warnings : DUMMY_WARNINGS} />
-      )}
-
-      {/* Rules of Origin */}
-      {((isReal && roo) || !isReal) && (
-        <RoODetail roo={roo ?? DUMMY_ROO} />
-      )}
+      {warnings.length > 0 && <WarningCards warnings={warnings} />}
 
       {/* Save as profile */}
       {isReal && (
@@ -252,7 +286,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
             <div className="flex gap-2">
               <input
                 value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
+                onChange={e => setSaveName(e.target.value)}
                 placeholder="Profile name…"
                 className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
               />
@@ -264,10 +298,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
                 {saveState === "saving" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Save
               </button>
-              <button
-                onClick={() => setShowSaveForm(false)}
-                className="px-3 py-2 rounded-md border border-[var(--border)] text-sm text-[var(--muted2)] hover:text-[var(--text)]"
-              >
+              <button onClick={() => setShowSaveForm(false)} className="px-3 py-2 rounded-md border border-[var(--border)] text-sm text-[var(--muted2)] hover:text-[var(--text)]">
                 Cancel
               </button>
             </div>
@@ -276,10 +307,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
               <CheckCircle size={14} /> Saved to profiles
             </div>
           ) : (
-            <button
-              onClick={() => setShowSaveForm(true)}
-              className="flex items-center gap-2 text-sm text-[var(--muted2)] hover:text-[var(--cyan)] transition-colors"
-            >
+            <button onClick={() => setShowSaveForm(true)} className="flex items-center gap-2 text-sm text-[var(--muted2)] hover:text-[var(--cyan)] transition-colors">
               <Save size={14} /> Save as profile
             </button>
           )}

@@ -73,11 +73,11 @@ const CalculatorInner = () => {
         })),
       };
 
-      console.log("[calc] request →", JSON.stringify(request, null, 2));
       const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
-      console.log("[calc] response →", JSON.stringify(result, null, 2));
+      // Response is wrapped: { data: {...}, meta: {...} }
+      const inner = (result?.data ?? result) as Record<string, unknown>;
       setCalcResult(result);
-      setCalcRequestId((result?.request_id ?? result?.id ?? null) as string | null);
+      setCalcRequestId((inner?.request_id ?? null) as string | null);
       setShowResults(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Calculation failed.";

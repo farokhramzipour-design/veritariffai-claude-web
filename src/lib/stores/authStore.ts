@@ -76,8 +76,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const token = getCookie('auth_token');
       if (token) {
+        // Set token immediately so API calls don't wait for the /me round-trip
+        set({ accessToken: token });
         const user = await usersApi.getMe(token);
-        set({ user, accessToken: token, isAuthenticated: true });
+        set({ user, isAuthenticated: true });
       }
     } catch (error) {
       console.error("Stored token is invalid", error);
