@@ -1,21 +1,94 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CalculatorPanel } from '@/components/dashboard/CalculatorPanel';
-import { ResultsPanel } from '@/components/dashboard/ResultsPanel';
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
+import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
+import { calculationsApi } from "@/lib/api/calculations";
+import { useCalculatorStore } from "@/lib/stores/calculatorStore";
 
 const CalculatorPage = () => {
+  const searchParams = useSearchParams();
   const [showResults, setShowResults] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [calcResult, setCalcResult] = useState<Record<string, unknown> | null>(null);
+  const [calcRequestId, setCalcRequestId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const handleCalculate = () => {
+  const { originCountry, destinationCountry, lines, setStep1, updateLine } =
+    useCalculatorStore();
+
+  // Pre-fill from invoice upload if navigated from invoice page
+  useEffect(() => {
+    if (searchParams?.get("from") === "invoice") {
+      try {
+        const raw = sessionStorage.getItem("invoiceData");
+        if (raw) {
+          const data = JSON.parse(raw) as Record<string, unknown>;
+          if (data.origin_country || data.country_of_origin) {
+            setStep1({ originCountry: (data.origin_country ?? data.country_of_origin) as string });
+          }
+          if (data.destination || data.destination_country) {
+            setStep1({ destinationCountry: (data.destination ?? data.destination_country) as string });
+          }
+          updateLine(0, {
+            hs_code: (data.hs_code ?? data.commodity_code ?? "") as string,
+            description: (data.description ?? data.goods_description ?? "") as string,
+            value: data.invoice_value ?? data.total_value
+              ? String(data.invoice_value ?? data.total_value)
+              : "",
+            currency: (data.currency ?? "GBP") as string,
+          });
+        }
+      } catch {
+        // ignore bad sessionStorage data
+      }
+    }
+  }, [searchParams, setStep1, updateLine]);
+
+  const handleCalculate = async () => {
+    if (!originCountry || !destinationCountry) {
+      setErrorMsg("Please set origin and destination countries.");
+      return;
+    }
+    const validLines = lines.filter((l) => l.hs_code);
+    if (!validLines.length) {
+      setErrorMsg("Please enter at least one HS code.");
+      return;
+    }
+
     setIsCalculating(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsCalculating(false);
+    setErrorMsg("");
+
+    try {
+      const request = {
+        origin: originCountry,
+        destination: destinationCountry,
+        lines: validLines.map((l) => ({
+          hs_code: l.hs_code,
+          description: l.description || undefined,
+          customs_value: l.value || "0",
+          currency: l.currency || "GBP",
+        })),
+      };
+
+      const result = await calculationsApi.submitSync(request) as Record<string, unknown>;
+      setCalcResult(result);
+      setCalcRequestId((result?.request_id ?? result?.id ?? null) as string | null);
       setShowResults(true);
-    }, 1500);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Calculation failed. Please try again.");
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleNewCalculation = () => {
+    setShowResults(false);
+    setCalcResult(null);
+    setCalcRequestId(null);
+    setErrorMsg("");
   };
 
   return (
@@ -28,26 +101,34 @@ const CalculatorPage = () => {
           </p>
         </header>
 
+        {errorMsg && (
+          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono">
+            {errorMsg}
+          </div>
+        )}
+
         <div className="flex flex-col xl:flex-row gap-6 items-start">
-          {/* Calculator Panel - Takes 60% width on desktop when results are shown, or 100% if not */}
-          <motion.div 
+          <motion.div
             layout
-            className={`w-full ${showResults ? 'xl:w-[60%]' : 'xl:w-full max-w-4xl mx-auto'} transition-all duration-500`}
+            className={`w-full ${showResults ? "xl:w-[60%]" : "xl:w-full max-w-4xl mx-auto"} transition-all duration-500`}
           >
             <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} />
           </motion.div>
 
-          {/* Results Panel - Takes 40% width on desktop */}
           <AnimatePresence>
             {showResults && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.4, delay: 0.1 }}
                 className="w-full xl:w-[40%]"
               >
-                <ResultsPanel />
+                <ResultsPanel
+                  result={calcResult}
+                  requestId={calcRequestId}
+                  onNewCalculation={handleNewCalculation}
+                />
               </motion.div>
             )}
           </AnimatePresence>

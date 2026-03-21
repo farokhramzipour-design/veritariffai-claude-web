@@ -6,6 +6,7 @@ import {
   History,
   Ship,
   FileUp,
+  BookMarked,
 } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
 
@@ -82,13 +83,25 @@ export default function AppSidebar() {
           <Link
             href="/history"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
-              isActive('/history') 
-                ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]' 
+              isActive('/history')
+                ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]'
                 : 'text-[var(--muted2)] hover:text-[var(--text)] hover:bg-[var(--s2)]'
             }`}
           >
             <History size={20} />
             <span className="font-display text-sm font-medium">History</span>
+          </Link>
+
+          <Link
+            href="/profiles"
+            className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
+              isActive('/profiles')
+                ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]'
+                : 'text-[var(--muted2)] hover:text-[var(--text)] hover:bg-[var(--s2)]'
+            }`}
+          >
+            <BookMarked size={20} />
+            <span className="font-display text-sm font-medium">Saved Profiles</span>
           </Link>
         </nav>
       </div>
