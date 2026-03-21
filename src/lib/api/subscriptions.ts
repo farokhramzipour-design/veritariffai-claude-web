@@ -1,6 +1,5 @@
 import apiClient from './client';
-
-type CheckoutRequest = { plan: string; billing_period: string };
+import type { CheckoutRequest } from '@/types/api';
 
 export const subscriptionsApi = {
   checkout: (request: CheckoutRequest) =>
@@ -8,7 +7,7 @@ export const subscriptionsApi = {
 
   portal: () =>
     apiClient.post('/api/v1/subscriptions/portal'),
-  
-  stripeWebhook: (payload: any) =>
+
+  stripeWebhook: (payload: Record<string, unknown>) =>
     apiClient.post('/api/v1/subscriptions/webhooks/stripe', payload),
 };

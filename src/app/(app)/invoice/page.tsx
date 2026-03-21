@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -47,7 +47,10 @@ function renderValue(value: unknown): string {
 
 export default function InvoiceUploadPage() {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, checkAuth, isLoading } = useAuthStore();
+
+  // Ensure token is hydrated from cookie if store hasn't been initialised yet
+  useEffect(() => { checkAuth(); }, [checkAuth]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -85,7 +88,12 @@ export default function InvoiceUploadPage() {
   const handleUpload = async () => {
     if (!file) return;
     if (!accessToken) {
-      setErrorMsg("You must be logged in to upload invoices.");
+      // Auth store may still be hydrating — wait briefly then retry
+      if (isLoading) {
+        setTimeout(handleUpload, 800);
+        return;
+      }
+      setErrorMsg("Session not found. Please log out and log in again.");
       setUploadState("error");
       return;
     }
