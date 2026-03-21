@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Loader2 } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/stores/calculatorStore';
+import { autofillApi } from '@/lib/api/autofill';
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-2.5 mb-4">
@@ -19,40 +20,24 @@ export const NLInput = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://api.veritariffai.co/api/v1/autofill', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ description: input })
-      });
+      const data = await autofillApi.autofill({ description: input }) as Record<string, unknown>;
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch autofill data');
-      }
-
-      const data = await response.json();
-
-      // Update store with response data
       setStep1({
-        originCountry: data.origin_country || undefined,
-        destinationCountry: data.destination_country || undefined,
-        incoterm: data.incoterms || undefined,
+        originCountry: (data.origin_country as string) || undefined,
+        destinationCountry: (data.destination_country as string) || undefined,
+        incoterm: (data.incoterms as string) || undefined,
       });
 
       updateLine(0, {
-        description: data.product_description || '',
-        hs_code: data.hs_code || '',
-        confidence: data.hs_confidence,
-        hsDescription: data.hs_description,
+        description: (data.product_description as string) || '',
+        hs_code: (data.hs_code as string) || '',
+        confidence: data.hs_confidence as number | undefined,
+        hsDescription: data.hs_description as string | undefined,
         value: data.declared_value ? String(data.declared_value) : '',
-        currency: data.currency || 'GBP'
+        currency: (data.currency as string) || 'GBP',
       });
-
     } catch (error) {
       console.error('Autofill error:', error);
-      // In a real app, we would show a toast notification here
       alert('Failed to autofill fields. Please try again.');
     } finally {
       setIsLoading(false);
