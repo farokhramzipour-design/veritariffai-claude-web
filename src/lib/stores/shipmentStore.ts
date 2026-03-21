@@ -32,17 +32,67 @@ export interface ClassificationData {
 
 // ─── Step 2: Rules of Origin ───────────────────────────────────────────────
 export type OriginProofMethod = 'statement_on_origin' | 'importers_knowledge' | 'other';
+export type OriginResult = 'UK_ORIGINATING' | 'NOT_ORIGINATING';
+export type TRQStatus = 'in_quota' | 'amber' | 'exhausted';
+export type CSLStatus = 'PASS' | 'AMBER' | 'HARD_BLOCK';
+export type UFLPARisk = 'CLEAR' | 'AMBER' | 'HARD_BLOCK';
 
 export interface OriginData {
-  mfnDutyRate: string;   // percentage string
+  // Gate 1: MFN
+  mfnDutyRate: string;
   dutyToSave: boolean | null;
   consignmentValueEUR: string;
+
+  // Gate 2: Document Upload
+  supplierDeclarationUploaded: boolean;
+  supplierDeclarationFileName: string;
+  statementOfOriginUploaded: boolean;
+  statementOfOriginFileName: string;
+  statementOfOriginIssueDate: string;   // extracted from doc
+  statementOfOriginValid: boolean | null;
+  documentPath: 'quick_path' | 'wizard' | null;  // quick if valid doc, wizard if no doc
+
+  // Gates 3A-3F: RoO Wizard
+  whollyObtained: boolean | null;         // 3A
+  meltCountry: string;                    // 3B
+  pourCountry: string;                    // 3B
+  cthSatisfied: boolean | null;           // 3B derived
+  euInputsPresent: boolean | null;        // 3C
+  cumulationApplied: boolean;             // 3C
+  sufficientOps: string[];                // 3D - which ops done in UK
+  originResult: OriginResult | null;      // 3E
+  originBasis: string;                    // 3E - e.g. 'CTH + melt/pour UK'
+  cumulationStatement: string;            // 3F - 'No cumulation applied' | 'Cumulation applied with EU'
+  statementOnOriginGenerated: boolean;    // 3F
+  statementOnOriginText: string;          // 3F
+  tcaPreferenceClaimed: boolean;
+
+  // Existing proof fields
   proofMethod: OriginProofMethod | '';
   eoriNumber: string;
   rexNumber: string;
   importersKnowledgeAcknowledged: boolean;
-  statementOnOriginGenerated: boolean;
-  tcaPreferenceClaimed: boolean;
+
+  // TRQ Live Screen
+  trqStatus: TRQStatus | null;
+  trqPercentRemaining: number | null;
+  trqCategoryCode: string;
+
+  // Section 301 (US-China corridor)
+  usCorridorApplicable: boolean;
+  section301ListHit: string | null;
+  section301Surcharge: number;
+  section301ExclusionCode: string;
+
+  // UFLPA (US-China)
+  uflpaFactoryRegion: string;
+  uflpaRiskLevel: UFLPARisk | null;
+
+  // CSL / Entity List Screen
+  cslPartyName: string;
+  cslScreeningStatus: CSLStatus | null;
+  cslMatchedEntity: string | null;
+  cslConfidenceScore: number | null;
 }
 
 // ─── Step 3: Sanctions ─────────────────────────────────────────────────────
@@ -396,15 +446,54 @@ const initialClassification: ClassificationData = {
 };
 
 const initialOrigin: OriginData = {
+  // Gate 1
   mfnDutyRate: '',
   dutyToSave: null,
   consignmentValueEUR: '',
+  // Gate 2
+  supplierDeclarationUploaded: false,
+  supplierDeclarationFileName: '',
+  statementOfOriginUploaded: false,
+  statementOfOriginFileName: '',
+  statementOfOriginIssueDate: '',
+  statementOfOriginValid: null,
+  documentPath: null,
+  // Gate 3A-3F
+  whollyObtained: null,
+  meltCountry: '',
+  pourCountry: '',
+  cthSatisfied: null,
+  euInputsPresent: null,
+  cumulationApplied: false,
+  sufficientOps: [],
+  originResult: null,
+  originBasis: '',
+  cumulationStatement: '',
+  statementOnOriginGenerated: false,
+  statementOnOriginText: '',
+  tcaPreferenceClaimed: false,
+  // Proof
   proofMethod: '',
   eoriNumber: '',
   rexNumber: '',
   importersKnowledgeAcknowledged: false,
-  statementOnOriginGenerated: false,
-  tcaPreferenceClaimed: false,
+  // TRQ
+  trqStatus: null,
+  trqPercentRemaining: null,
+  trqCategoryCode: '26',
+  // Section 301
+  usCorridorApplicable: false,
+  section301ListHit: null,
+  section301Surcharge: 0,
+  section301ExclusionCode: '',
+  // UFLPA
+  uflpaFactoryRegion: '',
+  uflpaRiskLevel: null,
+  // CSL
+  cslPartyName: '',
+  cslScreeningStatus: null,
+  cslMatchedEntity: null,
+  cslConfidenceScore: null,
 };
 
 const initialSanctions: SanctionsData = {

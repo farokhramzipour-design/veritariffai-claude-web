@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
 import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
@@ -16,36 +17,96 @@ const CalculatorInner = () => {
   const [calcRequestId, setCalcRequestId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const { originCountry, destinationCountry, lines, setStep1, updateLine } =
+  const { originCountry, destinationCountry, lines, setStep1, updateLine, addLine, reset } =
     useCalculatorStore();
+
+  const [invoiceBanner, setInvoiceBanner] = useState(false);
 
   // Pre-fill from invoice upload if navigated from invoice page
   useEffect(() => {
-    if (searchParams?.get("from") === "invoice") {
-      try {
-        const raw = sessionStorage.getItem("invoiceData");
-        if (raw) {
-          const data = JSON.parse(raw) as Record<string, unknown>;
-          if (data.origin_country || data.country_of_origin) {
-            setStep1({ originCountry: (data.origin_country ?? data.country_of_origin) as string });
-          }
-          if (data.destination || data.destination_country) {
-            setStep1({ destinationCountry: (data.destination ?? data.destination_country) as string });
-          }
-          updateLine(0, {
-            hs_code: (data.hs_code ?? data.commodity_code ?? "") as string,
-            description: (data.description ?? data.goods_description ?? "") as string,
-            value: data.invoice_value ?? data.total_value
-              ? String(data.invoice_value ?? data.total_value)
-              : "",
-            currency: (data.currency ?? "GBP") as string,
-          });
-        }
-      } catch {
-        // ignore bad sessionStorage data
+    if (searchParams?.get("from") !== "invoice") return;
+    try {
+      const raw = sessionStorage.getItem("invoiceData");
+      if (!raw) return;
+      sessionStorage.removeItem("invoiceData");
+      const data = JSON.parse(raw) as Record<string, unknown>;
+
+      // Country name → ISO-2 fallback map
+      const countryMap: Record<string, string> = {
+        "united kingdom": "GB", "uk": "GB", "great britain": "GB",
+        "united states": "US", "usa": "US", "us": "US",
+        "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES",
+        "netherlands": "NL", "belgium": "BE", "poland": "PL", "sweden": "SE",
+        "denmark": "DK", "norway": "NO", "finland": "FI", "austria": "AT",
+        "switzerland": "CH", "portugal": "PT", "ireland": "IE", "czech republic": "CZ",
+        "hungary": "HU", "romania": "RO", "bulgaria": "BG", "greece": "GR",
+        "croatia": "HR", "slovakia": "SK", "slovenia": "SI", "estonia": "EE",
+        "latvia": "LV", "lithuania": "LT", "luxembourg": "LU", "malta": "MT",
+        "cyprus": "CY",
+        "china": "CN", "japan": "JP", "south korea": "KR", "korea": "KR",
+        "india": "IN", "vietnam": "VN", "thailand": "TH", "indonesia": "ID",
+        "malaysia": "MY", "singapore": "SG", "taiwan": "TW", "hong kong": "HK",
+        "bangladesh": "BD", "pakistan": "PK",
+        "canada": "CA", "mexico": "MX", "brazil": "BR", "argentina": "AR",
+        "chile": "CL", "colombia": "CO",
+        "australia": "AU", "new zealand": "NZ",
+        "south africa": "ZA", "nigeria": "NG", "kenya": "KE", "ghana": "GH",
+        "egypt": "EG", "morocco": "MA", "ethiopia": "ET",
+        "turkey": "TR", "saudi arabia": "SA", "uae": "AE",
+        "united arab emirates": "AE", "israel": "IL", "qatar": "QA",
+        "kuwait": "KW", "bahrain": "BH", "oman": "OM",
+      };
+      const toISO = (v: unknown): string | null => {
+        if (!v || typeof v !== "string") return null;
+        const trimmed = v.trim();
+        if (trimmed.length === 2) return trimmed.toUpperCase();
+        return countryMap[trimmed.toLowerCase()] ?? trimmed;
+      };
+
+      const origin = toISO(data.origin_country ?? data.country_of_origin);
+      const dest = toISO(data.destination ?? data.destination_country);
+      if (origin || dest) {
+        setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
       }
+
+      // Handle line items array (multiple lines)
+      const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
+      if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
+        // Reset to match invoice line count
+        reset();
+        if (origin || dest) {
+          setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
+        }
+        invoiceLines.forEach((item, i) => {
+          const line = item as Record<string, unknown>;
+          if (i > 0) addLine();
+          updateLine(i, {
+            hs_code: String(line.hs_code ?? line.commodity_code ?? ""),
+            description: String(line.description ?? line.goods_description ?? ""),
+            value: line.unit_price ?? line.value ?? line.amount
+              ? String(line.unit_price ?? line.value ?? line.amount)
+              : "",
+            currency: String(line.currency ?? data.currency ?? "GBP"),
+          });
+        });
+      } else {
+        // Single-line pre-fill
+        updateLine(0, {
+          hs_code: String(data.hs_code ?? data.commodity_code ?? ""),
+          description: String(data.description ?? data.goods_description ?? ""),
+          value: (data.invoice_value ?? data.total_value)
+            ? String(data.invoice_value ?? data.total_value)
+            : "",
+          currency: String(data.currency ?? "GBP"),
+        });
+      }
+
+      setInvoiceBanner(true);
+      setTimeout(() => setInvoiceBanner(false), 5000);
+    } catch {
+      // ignore bad sessionStorage data
     }
-  }, [searchParams, setStep1, updateLine]);
+  }, [searchParams, setStep1, updateLine, addLine, reset]);
 
   const handleCalculate = async () => {
     if (!originCountry || !destinationCountry) {
@@ -107,6 +168,13 @@ const CalculatorInner = () => {
             Estimate landed cost, duties, and taxes for international shipments.
           </p>
         </header>
+
+        {invoiceBanner && (
+          <div className="mb-4 px-4 py-3 bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.25)] rounded-lg text-sm text-[var(--cyan)] font-mono flex items-center gap-2">
+            <CheckCircle size={14} className="flex-shrink-0" />
+            Calculator pre-filled from your invoice.
+          </div>
+        )}
 
         {errorMsg && (
           <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono">
