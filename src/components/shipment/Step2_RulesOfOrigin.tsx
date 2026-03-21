@@ -296,7 +296,7 @@ export const Step2_RulesOfOrigin = ({ onNext, onBack }: Props) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
             <div>
-              <p className="font-mono text-xs text-[var(--muted2)] mb-2 font-bold uppercase tracking-wider">Supplier's Declaration</p>
+              <p className="font-mono text-xs text-[var(--muted2)] mb-2 font-bold uppercase tracking-wider">Supplier&apos;s Declaration</p>
               <p className="font-mono text-[10px] text-[var(--muted2)] mb-3">TCA Annex ORIG-3 — goods ID, origin statement, non-originating materials, cumulation, signatory</p>
               <UploadZone
                 label="Upload Supplier's Declaration"
