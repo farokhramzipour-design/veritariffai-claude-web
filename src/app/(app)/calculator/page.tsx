@@ -45,6 +45,44 @@ function toISO(v: unknown): string | null {
   return COUNTRY_MAP[trimmed.toLowerCase()] ?? trimmed;
 }
 
+// Maps full/partial names → code (covers what AI invoice parsers typically return)
+const INCOTERM_NAME_MAP: Record<string, string> = {
+  "EX WORKS": "EXW", "EXWORKS": "EXW",
+  "FREE CARRIER": "FCA",
+  "FREE ALONGSIDE SHIP": "FAS", "FREE ALONGSIDE": "FAS",
+  "FREE ON BOARD": "FOB",
+  "COST AND FREIGHT": "CFR", "COST & FREIGHT": "CFR",
+  "COST INSURANCE FREIGHT": "CIF", "COST, INSURANCE AND FREIGHT": "CIF",
+  "COST, INSURANCE & FREIGHT": "CIF",
+  "CARRIAGE PAID TO": "CPT",
+  "CARRIAGE AND INSURANCE PAID": "CIP", "CARRIAGE & INSURANCE PAID": "CIP",
+  "DELIVERED AT PLACE": "DAP",
+  "DELIVERED AT PLACE UNLOADED": "DPU", "DELIVERED AT TERMINAL": "DPU",
+  "DELIVERED DUTY PAID": "DDP",
+};
+const VALID_INCOTERM_CODES = ["EXW","FCA","FAS","FOB","CFR","CIF","CPT","CIP","DAP","DPU","DDP"];
+
+function normalizeIncoterm(v: unknown): string | null {
+  if (!v || typeof v !== "string") return null;
+  const upper = v.trim().toUpperCase();
+  // 1. Exact code match
+  if (VALID_INCOTERM_CODES.includes(upper)) return upper;
+  // 2. Starts with a code followed by space, dash, or slash (e.g. "CIF - Cost...")
+  for (const code of VALID_INCOTERM_CODES) {
+    if (upper.startsWith(code + " ") || upper.startsWith(code + "-") || upper.startsWith(code + "/")) return code;
+  }
+  // 3. Code wrapped in parens (e.g. "Free on Board (FOB)")
+  const parenMatch = upper.match(/\(([A-Z]{3})\)/);
+  if (parenMatch && VALID_INCOTERM_CODES.includes(parenMatch[1])) return parenMatch[1];
+  // 4. Full name match
+  if (INCOTERM_NAME_MAP[upper]) return INCOTERM_NAME_MAP[upper];
+  // 5. Partial name — check if any key is contained in the value
+  for (const [name, code] of Object.entries(INCOTERM_NAME_MAP)) {
+    if (upper.includes(name)) return code;
+  }
+  return null;
+}
+
 function applyInvoiceData(
   data: Record<string, unknown>,
   setStep1: (v: Record<string, unknown>) => void,
@@ -55,7 +93,7 @@ function applyInvoiceData(
 ) {
   const origin = toISO(data.origin_country ?? data.country_of_origin);
   const dest = toISO(data.destination ?? data.destination_country);
-  const incoterm = (data.incoterms ?? data.incoterm) as string | undefined;
+  const incoterm = normalizeIncoterm(data.incoterms ?? data.incoterm ?? data.terms_of_delivery ?? data.delivery_terms);
   const currency = String(data.currency ?? "GBP");
   const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
   const freightRaw = data.freight_cost ?? data.freight ?? data.freight_value;

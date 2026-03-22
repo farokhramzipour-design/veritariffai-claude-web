@@ -2,10 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 const incotermsOptions = [
-  { code: 'EXW', name: 'Ex Works', description: 'Buyer takes all risk from seller\'s premises' },
-  { code: 'FOB', name: 'Free on Board', description: 'Seller responsible until goods on vessel' },
-  { code: 'CIF', name: 'Cost Insurance Freight', description: 'Seller covers cost, insurance, freight' },
-  { code: 'DDP', name: 'Delivered Duty Paid', description: 'Seller responsible for all costs to destination' },
+  { code: 'EXW', name: 'Ex Works',                    description: 'Buyer takes all risk from seller\'s premises' },
+  { code: 'FCA', name: 'Free Carrier',                 description: 'Seller delivers to named carrier' },
+  { code: 'FAS', name: 'Free Alongside Ship',          description: 'Seller delivers alongside vessel' },
+  { code: 'FOB', name: 'Free on Board',                description: 'Seller responsible until goods on vessel' },
+  { code: 'CFR', name: 'Cost and Freight',             description: 'Seller pays freight, buyer bears risk after loading' },
+  { code: 'CIF', name: 'Cost Insurance Freight',       description: 'Seller covers cost, insurance, freight' },
+  { code: 'CPT', name: 'Carriage Paid To',             description: 'Seller pays freight to named destination' },
+  { code: 'CIP', name: 'Carriage and Insurance Paid',  description: 'Seller pays freight and insurance to destination' },
+  { code: 'DAP', name: 'Delivered at Place',           description: 'Seller delivers to named place, buyer pays import' },
+  { code: 'DPU', name: 'Delivered at Place Unloaded',  description: 'Seller delivers and unloads at destination' },
+  { code: 'DDP', name: 'Delivered Duty Paid',          description: 'Seller responsible for all costs to destination' },
 ];
 
 interface IncotermsSelectProps {
