@@ -15,4 +15,7 @@ export const tariffApi = {
 
   getDutyRate: (params: DutyRateParams) =>
     apiClient.get('/api/v1/duty-rate', { params }),
+
+  lookupDutyRate: (params: DutyRateParams) =>
+    apiClient.get('/api/v1/duty-rate/lookup', { params }),
 };
