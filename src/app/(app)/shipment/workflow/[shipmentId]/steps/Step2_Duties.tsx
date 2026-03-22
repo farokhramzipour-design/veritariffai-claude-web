@@ -368,7 +368,7 @@ export function Step2_Duties() {
                   </div>
                   {euInputs === true && (
                     <p className="font-mono text-[11px] text-[#f59e0b] mt-2">
-                      ⚠ EU supplier declaration required. Statement must say "Cumulation applied with EU".
+                      ⚠ EU supplier declaration required. Statement must say &quot;Cumulation applied with EU&quot;.
                     </p>
                   )}
                   {euInputs === false && (
