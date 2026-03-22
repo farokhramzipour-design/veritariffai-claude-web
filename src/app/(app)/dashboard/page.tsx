@@ -116,6 +116,7 @@ function DutyRateLookup() {
       </div>
 
       <button
+        type="button"
         onClick={handleLookup}
         disabled={loading}
         className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--cyan)] text-black font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
