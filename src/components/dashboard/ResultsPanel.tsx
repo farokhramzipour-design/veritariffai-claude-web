@@ -11,6 +11,7 @@ import { CostTable } from "./results/CostTable";
 import { WarningCards } from "./results/WarningCards";
 import { ResultsActions } from "./results/ResultsActions";
 import { calculationsApi } from "@/lib/api/calculations";
+import { useCalculatorStore } from "@/lib/stores/calculatorStore";
 
 // ─── API response types ───────────────────────────────────────────────────────
 
@@ -177,6 +178,7 @@ interface ResultsPanelProps {
 
 export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPanelProps) => {
   const router = useRouter();
+  const { originCountry, destinationCountry, lines } = useCalculatorStore();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveName, setSaveName] = useState("");
   const [showSaveForm, setShowSaveForm] = useState(false);
@@ -213,8 +215,18 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
     try {
       await calculationsApi.createProfile({
         name: saveName.trim(),
-        shipment_data: (data ?? {}) as Record<string, unknown>,
-        lines_data: (data?.line_results ?? [result]) as Record<string, unknown>[],
+        shipment_data: {
+          origin: originCountry,
+          destination: destinationCountry,
+        },
+        lines_data: lines
+          .filter(l => l.hs_code)
+          .map(l => ({
+            hs_code: l.hs_code,
+            description: l.description || undefined,
+            customs_value: l.value || "0",
+            currency: l.currency || "GBP",
+          })),
       });
       setSaveState("saved");
       setShowSaveForm(false);
@@ -307,9 +319,14 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
               <CheckCircle size={14} /> Saved to profiles
             </div>
           ) : (
-            <button onClick={() => setShowSaveForm(true)} className="flex items-center gap-2 text-sm text-[var(--muted2)] hover:text-[var(--cyan)] transition-colors">
-              <Save size={14} /> Save as profile
-            </button>
+            <div className="flex flex-col gap-1">
+              <button onClick={() => { setShowSaveForm(true); setSaveState("idle"); }} className="flex items-center gap-2 text-sm text-[var(--muted2)] hover:text-[var(--cyan)] transition-colors">
+                <Save size={14} /> Save as profile
+              </button>
+              {saveState === "error" && (
+                <p className="text-xs text-red-400 font-mono">Save failed — please try again.</p>
+              )}
+            </div>
           )}
         </div>
       )}

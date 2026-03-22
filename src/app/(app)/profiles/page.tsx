@@ -12,6 +12,7 @@ import {
   Calculator,
   Plus,
   X,
+  Zap,
 } from "lucide-react";
 import { calculationsApi } from "@/lib/api/calculations";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
@@ -56,16 +57,18 @@ export default function ProfilesPage() {
   const [createName, setCreateName] = useState("");
   const [createDesc, setCreateDesc] = useState("");
   const [creating, setCreating] = useState(false);
+  const [quota, setQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = (await calculationsApi.listProfiles()) as
-        | { items?: Profile[]; results?: Profile[] }
-        | Profile[];
-
-      setProfiles(Array.isArray(res) ? res : (res.items ?? res.results ?? []));
+      const [res, quotaRes] = await Promise.all([
+        calculationsApi.listProfiles() as Promise<{ items?: Profile[]; results?: Profile[] } | Profile[]>,
+        calculationsApi.getQuota().catch(() => null) as Promise<{ used: number; limit: number | null; remaining: number | null } | null>,
+      ]);
+      setProfiles(Array.isArray(res) ? res : ((res as { items?: Profile[]; results?: Profile[] }).items ?? (res as { items?: Profile[]; results?: Profile[] }).results ?? []));
+      if (quotaRes) setQuota(quotaRes as { used: number; limit: number | null; remaining: number | null });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load profiles.");
     } finally {
@@ -122,7 +125,9 @@ export default function ProfilesPage() {
       setShowCreate(false);
       load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to create profile.");
+      const msg = e instanceof Error ? e.message : String(e);
+      const isQuotaError = msg.includes("403") || msg.toLowerCase().includes("limit");
+      alert(isQuotaError ? "Profile limit reached. Upgrade to PRO for unlimited profiles." : `Failed to create profile: ${msg}`);
     } finally {
       setCreating(false);
     }
@@ -156,6 +161,41 @@ export default function ProfilesPage() {
           </button>
         </div>
       </div>
+
+      {/* Quota bar */}
+      {quota && (
+        <div className="flex items-center gap-4 px-5 py-3 bg-[var(--s1)] border border-[var(--border)] rounded-xl">
+          {quota.limit === null ? (
+            <div className="flex items-center gap-2 text-xs font-mono text-[var(--cyan)]">
+              <Zap size={13} /> PRO — unlimited profiles
+            </div>
+          ) : (
+            <>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">
+                    Profile usage
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--muted2)]">
+                    {quota.used} / {quota.limit}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-[var(--s3)] rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${quota.used >= quota.limit ? "bg-red-400" : quota.used >= quota.limit * 0.8 ? "bg-yellow-400" : "bg-[var(--cyan)]"}`}
+                    style={{ width: `${Math.min(100, (quota.used / quota.limit) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              {quota.remaining !== null && quota.remaining <= 1 && (
+                <p className="text-[10px] font-mono text-yellow-400 flex-shrink-0">
+                  {quota.remaining === 0 ? "Limit reached — upgrade to PRO" : "1 slot remaining"}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Create profile panel */}
       <AnimatePresence>

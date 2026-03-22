@@ -1,28 +1,229 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle } from "lucide-react";
+import {
+  CheckCircle, Upload, FileText, X, Loader2, AlertCircle,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
 import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
+import { invoiceApi } from "@/lib/api/invoice";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
+
+// Country name → ISO-2 map (shared between sessionStorage pre-fill and inline upload)
+const COUNTRY_MAP: Record<string, string> = {
+  "united kingdom": "GB", "uk": "GB", "great britain": "GB",
+  "united states": "US", "usa": "US", "us": "US",
+  "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES",
+  "netherlands": "NL", "belgium": "BE", "poland": "PL", "sweden": "SE",
+  "denmark": "DK", "norway": "NO", "finland": "FI", "austria": "AT",
+  "switzerland": "CH", "portugal": "PT", "ireland": "IE", "czech republic": "CZ",
+  "hungary": "HU", "romania": "RO", "bulgaria": "BG", "greece": "GR",
+  "croatia": "HR", "slovakia": "SK", "slovenia": "SI", "estonia": "EE",
+  "latvia": "LV", "lithuania": "LT", "luxembourg": "LU", "malta": "MT",
+  "cyprus": "CY",
+  "china": "CN", "japan": "JP", "south korea": "KR", "korea": "KR",
+  "india": "IN", "vietnam": "VN", "thailand": "TH", "indonesia": "ID",
+  "malaysia": "MY", "singapore": "SG", "taiwan": "TW", "hong kong": "HK",
+  "bangladesh": "BD", "pakistan": "PK",
+  "canada": "CA", "mexico": "MX", "brazil": "BR", "argentina": "AR",
+  "chile": "CL", "colombia": "CO",
+  "australia": "AU", "new zealand": "NZ",
+  "south africa": "ZA", "nigeria": "NG", "kenya": "KE", "ghana": "GH",
+  "egypt": "EG", "morocco": "MA", "ethiopia": "ET",
+  "turkey": "TR", "saudi arabia": "SA", "uae": "AE",
+  "united arab emirates": "AE", "israel": "IL", "qatar": "QA",
+  "kuwait": "KW", "bahrain": "BH", "oman": "OM",
+};
+
+function toISO(v: unknown): string | null {
+  if (!v || typeof v !== "string") return null;
+  const trimmed = v.trim();
+  if (trimmed.length === 2) return trimmed.toUpperCase();
+  return COUNTRY_MAP[trimmed.toLowerCase()] ?? trimmed;
+}
+
+function applyInvoiceData(
+  data: Record<string, unknown>,
+  setStep1: (v: Record<string, unknown>) => void,
+  updateLine: (i: number, v: Record<string, unknown>) => void,
+  addLine: () => void,
+  reset: () => void,
+) {
+  const origin = toISO(data.origin_country ?? data.country_of_origin);
+  const dest = toISO(data.destination ?? data.destination_country);
+  const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
+
+  if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
+    reset();
+    if (origin || dest) setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
+    invoiceLines.forEach((item, i) => {
+      const line = item as Record<string, unknown>;
+      if (i > 0) addLine();
+      updateLine(i, {
+        hs_code: String(line.hs_code ?? line.commodity_code ?? ""),
+        description: String(line.description ?? line.goods_description ?? ""),
+        value: line.unit_price ?? line.value ?? line.amount ? String(line.unit_price ?? line.value ?? line.amount) : "",
+        currency: String(line.currency ?? data.currency ?? "GBP"),
+      });
+    });
+  } else {
+    if (origin || dest) setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
+    updateLine(0, {
+      hs_code: String(data.hs_code ?? data.commodity_code ?? ""),
+      description: String(data.description ?? data.goods_description ?? ""),
+      value: (data.invoice_value ?? data.total_value) ? String(data.invoice_value ?? data.total_value) : "",
+      currency: String(data.currency ?? "GBP"),
+    });
+  }
+}
+
+// ─── Inline invoice upload zone ───────────────────────────────────────────────
+
+function InvoiceUploadZone({
+  onSuccess,
+}: {
+  onSuccess: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const { setStep1, updateLine, addLine, reset } = useCalculatorStore();
+
+  const handleFile = useCallback((f: File) => {
+    if (f.type !== "application/pdf") {
+      setError("Only PDF files are accepted.");
+      return;
+    }
+    setFile(f);
+    setError("");
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const raw = (await invoiceApi.upload(file) as unknown) as Record<string, unknown>;
+      const data = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
+      applyInvoiceData(data, setStep1 as (v: Record<string, unknown>) => void, updateLine as (i: number, v: Record<string, unknown>) => void, addLine, reset);
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Drop zone */}
+      <div
+        className={`relative rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer
+          ${dragOver ? "border-[var(--cyan)] bg-[rgba(0,229,255,0.05)]" : "border-[var(--border)] hover:border-[rgba(0,229,255,0.4)] hover:bg-[rgba(0,229,255,0.02)]"}
+          ${file ? "border-[rgba(0,229,255,0.4)]" : ""}
+        `}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        onClick={() => !file && fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+        <div className="p-8 flex flex-col items-center text-center gap-3">
+          {file ? (
+            <FileText size={32} className="text-[var(--cyan)]" />
+          ) : (
+            <Upload size={32} className="text-[var(--muted2)]" />
+          )}
+          {file ? (
+            <div>
+              <p className="font-mono text-sm font-bold text-[var(--cyan)]">{file.name}</p>
+              <p className="font-mono text-xs text-[var(--muted2)] mt-0.5">{(file.size / 1024).toFixed(1)} KB</p>
+            </div>
+          ) : (
+            <div>
+              <p className="font-mono text-sm font-semibold text-[var(--text)]">
+                {dragOver ? "Drop PDF here" : "Drag & drop your invoice PDF"}
+              </p>
+              <p className="font-mono text-xs text-[var(--muted2)] mt-1">or click to browse — PDF only</p>
+            </div>
+          )}
+          {error && <p className="text-xs text-red-400 font-mono">{error}</p>}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        {file && (
+          <>
+            <button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--cyan)] text-black font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {uploading
+                ? <><Loader2 size={15} className="animate-spin" /> Extracting…</>
+                : <><Upload size={15} /> Upload &amp; Auto-fill</>
+              }
+            </button>
+            <button
+              onClick={() => { setFile(null); setError(""); }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-sm text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
+            >
+              <X size={14} /> Clear
+            </button>
+          </>
+        )}
+        {!file && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[var(--cyan)] text-[var(--cyan)] font-semibold text-sm hover:bg-[rgba(0,229,255,0.05)] transition-colors"
+          >
+            <Upload size={15} /> Choose PDF
+          </button>
+        )}
+      </div>
+
+      <p className="text-[10px] font-mono text-[var(--muted2)]">
+        AI extracts seller, buyer, HS codes, values, countries and pre-fills the calculator automatically.
+      </p>
+    </div>
+  );
+}
+
+// ─── Main inner component ─────────────────────────────────────────────────────
 
 const CalculatorInner = () => {
   const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"manual" | "invoice">("manual");
   const [showResults, setShowResults] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [calcResult, setCalcResult] = useState<Record<string, unknown> | null>(null);
   const [calcRequestId, setCalcRequestId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [invoiceBanner, setInvoiceBanner] = useState(false);
 
   const { originCountry, destinationCountry, lines, setStep1, updateLine, addLine, reset } =
     useCalculatorStore();
 
-  const [invoiceBanner, setInvoiceBanner] = useState(false);
-
-  // Pre-fill from invoice upload if navigated from invoice page
+  // Pre-fill from sessionStorage when navigated from invoice page
   useEffect(() => {
     if (searchParams?.get("from") !== "invoice") return;
     try {
@@ -30,83 +231,19 @@ const CalculatorInner = () => {
       if (!raw) return;
       sessionStorage.removeItem("invoiceData");
       const data = JSON.parse(raw) as Record<string, unknown>;
-
-      // Country name → ISO-2 fallback map
-      const countryMap: Record<string, string> = {
-        "united kingdom": "GB", "uk": "GB", "great britain": "GB",
-        "united states": "US", "usa": "US", "us": "US",
-        "germany": "DE", "france": "FR", "italy": "IT", "spain": "ES",
-        "netherlands": "NL", "belgium": "BE", "poland": "PL", "sweden": "SE",
-        "denmark": "DK", "norway": "NO", "finland": "FI", "austria": "AT",
-        "switzerland": "CH", "portugal": "PT", "ireland": "IE", "czech republic": "CZ",
-        "hungary": "HU", "romania": "RO", "bulgaria": "BG", "greece": "GR",
-        "croatia": "HR", "slovakia": "SK", "slovenia": "SI", "estonia": "EE",
-        "latvia": "LV", "lithuania": "LT", "luxembourg": "LU", "malta": "MT",
-        "cyprus": "CY",
-        "china": "CN", "japan": "JP", "south korea": "KR", "korea": "KR",
-        "india": "IN", "vietnam": "VN", "thailand": "TH", "indonesia": "ID",
-        "malaysia": "MY", "singapore": "SG", "taiwan": "TW", "hong kong": "HK",
-        "bangladesh": "BD", "pakistan": "PK",
-        "canada": "CA", "mexico": "MX", "brazil": "BR", "argentina": "AR",
-        "chile": "CL", "colombia": "CO",
-        "australia": "AU", "new zealand": "NZ",
-        "south africa": "ZA", "nigeria": "NG", "kenya": "KE", "ghana": "GH",
-        "egypt": "EG", "morocco": "MA", "ethiopia": "ET",
-        "turkey": "TR", "saudi arabia": "SA", "uae": "AE",
-        "united arab emirates": "AE", "israel": "IL", "qatar": "QA",
-        "kuwait": "KW", "bahrain": "BH", "oman": "OM",
-      };
-      const toISO = (v: unknown): string | null => {
-        if (!v || typeof v !== "string") return null;
-        const trimmed = v.trim();
-        if (trimmed.length === 2) return trimmed.toUpperCase();
-        return countryMap[trimmed.toLowerCase()] ?? trimmed;
-      };
-
-      const origin = toISO(data.origin_country ?? data.country_of_origin);
-      const dest = toISO(data.destination ?? data.destination_country);
-      if (origin || dest) {
-        setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
-      }
-
-      // Handle line items array (multiple lines)
-      const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
-      if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
-        // Reset to match invoice line count
-        reset();
-        if (origin || dest) {
-          setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
-        }
-        invoiceLines.forEach((item, i) => {
-          const line = item as Record<string, unknown>;
-          if (i > 0) addLine();
-          updateLine(i, {
-            hs_code: String(line.hs_code ?? line.commodity_code ?? ""),
-            description: String(line.description ?? line.goods_description ?? ""),
-            value: line.unit_price ?? line.value ?? line.amount
-              ? String(line.unit_price ?? line.value ?? line.amount)
-              : "",
-            currency: String(line.currency ?? data.currency ?? "GBP"),
-          });
-        });
-      } else {
-        // Single-line pre-fill
-        updateLine(0, {
-          hs_code: String(data.hs_code ?? data.commodity_code ?? ""),
-          description: String(data.description ?? data.goods_description ?? ""),
-          value: (data.invoice_value ?? data.total_value)
-            ? String(data.invoice_value ?? data.total_value)
-            : "",
-          currency: String(data.currency ?? "GBP"),
-        });
-      }
-
+      applyInvoiceData(data, setStep1 as (v: Record<string, unknown>) => void, updateLine as (i: number, v: Record<string, unknown>) => void, addLine, reset);
       setInvoiceBanner(true);
       setTimeout(() => setInvoiceBanner(false), 5000);
     } catch {
       // ignore bad sessionStorage data
     }
   }, [searchParams, setStep1, updateLine, addLine, reset]);
+
+  const handleInvoiceSuccess = () => {
+    setMode("manual");
+    setInvoiceBanner(true);
+    setTimeout(() => setInvoiceBanner(false), 5000);
+  };
 
   const handleCalculate = async () => {
     if (!originCountry || !destinationCountry) {
@@ -135,14 +272,12 @@ const CalculatorInner = () => {
       };
 
       const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
-      // Response is wrapped: { data: {...}, meta: {...} }
       const inner = (result?.data ?? result) as Record<string, unknown>;
       setCalcResult(result);
       setCalcRequestId((inner?.request_id ?? null) as string | null);
       setShowResults(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Calculation failed.";
-      // Surface the raw error object if available (API validation errors, etc.)
       const detail = typeof err === "object" && err !== null && "detail" in err
         ? JSON.stringify((err as Record<string, unknown>).detail)
         : null;
@@ -162,52 +297,118 @@ const CalculatorInner = () => {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <div className="max-w-[1600px] mx-auto">
-        <header className="mb-8">
+        <header className="mb-6">
           <h1 className="font-display text-2xl font-bold mb-2">New Calculation</h1>
           <p className="font-mono text-sm text-[var(--muted2)]">
             Estimate landed cost, duties, and taxes for international shipments.
           </p>
         </header>
 
-        {invoiceBanner && (
-          <div className="mb-4 px-4 py-3 bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.25)] rounded-lg text-sm text-[var(--cyan)] font-mono flex items-center gap-2">
-            <CheckCircle size={14} className="flex-shrink-0" />
-            Calculator pre-filled from your invoice.
-          </div>
-        )}
+        {/* Mode switcher */}
+        <div className="flex gap-1 mb-6 p-1 bg-[var(--s1)] border border-[var(--border)] rounded-lg w-fit">
+          <button
+            onClick={() => setMode("manual")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              mode === "manual"
+                ? "bg-[var(--cyan)] text-black"
+                : "text-[var(--muted2)] hover:text-[var(--text)]"
+            }`}
+          >
+            ✏️ Manual Entry
+          </button>
+          <button
+            onClick={() => setMode("invoice")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${
+              mode === "invoice"
+                ? "bg-[var(--cyan)] text-black"
+                : "text-[var(--muted2)] hover:text-[var(--text)]"
+            }`}
+          >
+            <Upload size={14} /> Upload Invoice
+          </button>
+        </div>
+
+        {/* Success banner */}
+        <AnimatePresence>
+          {invoiceBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-4 px-4 py-3 bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.25)] rounded-lg text-sm text-[var(--cyan)] font-mono flex items-center gap-2"
+            >
+              <CheckCircle size={14} className="flex-shrink-0" />
+              Calculator pre-filled from your invoice. Review the fields and click Calculate.
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {errorMsg && (
-          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono">
+          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono flex items-center gap-2">
+            <AlertCircle size={14} className="flex-shrink-0" />
             {errorMsg}
           </div>
         )}
 
-        <div className="flex flex-col xl:flex-row gap-6 items-start">
-          <motion.div
-            layout
-            className={`w-full ${showResults ? "xl:w-[60%]" : "xl:w-full max-w-4xl mx-auto"} transition-all duration-500`}
-          >
-            <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} />
-          </motion.div>
+        {/* Invoice upload mode */}
+        <AnimatePresence mode="wait">
+          {mode === "invoice" && (
+            <motion.div
+              key="invoice"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-2xl mx-auto bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 mb-6"
+            >
+              <div className="mb-6">
+                <h2 className="font-display text-base font-bold text-[var(--text)] mb-1">Upload Commercial Invoice</h2>
+                <p className="font-mono text-xs text-[var(--muted2)]">
+                  AI extracts trade data and pre-fills the calculator — then switch to Manual Entry to review and calculate.
+                </p>
+              </div>
+              <InvoiceUploadZone onSuccess={handleInvoiceSuccess} />
+            </motion.div>
+          )}
 
-          <AnimatePresence>
-            {showResults && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="w-full xl:w-[40%]"
-              >
-                <ResultsPanel
-                  result={calcResult}
-                  requestId={calcRequestId}
-                  onNewCalculation={handleNewCalculation}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+          {/* Manual entry mode */}
+          {mode === "manual" && (
+            <motion.div
+              key="manual"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex flex-col xl:flex-row gap-6 items-start">
+                <motion.div
+                  layout
+                  className={`w-full ${showResults ? "xl:w-[60%]" : "xl:w-full max-w-4xl mx-auto"} transition-all duration-500`}
+                >
+                  <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} />
+                </motion.div>
+
+                <AnimatePresence>
+                  {showResults && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                      className="w-full xl:w-[40%]"
+                    >
+                      <ResultsPanel
+                        result={calcResult}
+                        requestId={calcRequestId}
+                        onNewCalculation={handleNewCalculation}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

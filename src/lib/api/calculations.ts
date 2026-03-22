@@ -33,6 +33,14 @@ export const calculationsApi = {
 
   // ── Calculation profiles ────────────────────────────────────────────────────
 
+  /** Returns { used, limit, remaining } — limit is null for PRO (unlimited). */
+  getQuota: () =>
+    apiClient.get('/api/v1/calculations/quota'),
+
+  /** Returns the total count of saved profiles for the current user. */
+  countProfiles: () =>
+    apiClient.get('/api/v1/calculations/profiles/count'),
+
   createProfile: (data: ProfileCreate) =>
     apiClient.post('/api/v1/calculations/profiles', data),
 

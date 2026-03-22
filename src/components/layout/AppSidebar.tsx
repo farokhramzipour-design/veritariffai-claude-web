@@ -5,7 +5,6 @@ import {
   Calculator,
   History,
   Ship,
-  FileUp,
   BookMarked,
 } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
@@ -68,17 +67,6 @@ export default function AppSidebar() {
             <span className="font-display text-sm font-medium">Steel Export</span>
           </Link>
 
-          <Link
-            href="/invoice"
-            className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
-              isActive('/invoice')
-                ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]'
-                : 'text-[var(--muted2)] hover:text-[var(--text)] hover:bg-[var(--s2)]'
-            }`}
-          >
-            <FileUp size={20} />
-            <span className="font-display text-sm font-medium">Invoice Upload</span>
-          </Link>
 
           <Link
             href="/history"
