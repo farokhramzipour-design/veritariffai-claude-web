@@ -20,13 +20,18 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL ?? ''}${config.url}`, { params: config.params, data: config.data });
   return config;
 });
 
 // Response interceptor to handle token refresh and custom errors
 apiClient.interceptors.response.use(
-  (response) => response.data, // Return the data object directly
+  (response) => {
+    console.log(`[API] ✓ ${response.status} ${response.config.url}`, response.data);
+    return response.data;
+  },
   async (error) => {
+    console.error(`[API] ✗ ${error.response?.status ?? 'ERR'} ${error.config?.url}`, error.response?.data ?? error.message);
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
