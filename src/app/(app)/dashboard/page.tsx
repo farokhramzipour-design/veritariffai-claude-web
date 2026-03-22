@@ -34,7 +34,9 @@ function DutyRateLookup() {
   const [result, setResult] = useState<DutyResult | null>(null);
 
   const handleLookup = async () => {
+    console.log("[DutyLookup] button clicked", { hsCode, origin, destination });
     if (!hsCode.trim() || !origin || !destination) {
+      console.warn("[DutyLookup] validation failed — missing fields");
       setError("Please fill in all three fields.");
       return;
     }
@@ -42,15 +44,18 @@ function DutyRateLookup() {
     setError("");
     setResult(null);
     try {
+      console.log("[DutyLookup] calling API...");
       const raw = (await tariffApi.lookupDutyRate({
         hs_code: hsCode.trim(),
         origin_country: origin,
         destination_country: destination,
       }) as unknown) as Record<string, unknown>;
-      // unwrap { data: {...} } if present
+      console.log("[DutyLookup] raw response:", raw);
       const data = (raw?.data && typeof raw.data === "object" ? raw.data : raw) as DutyResult;
+      console.log("[DutyLookup] parsed data:", data);
       setResult(data);
     } catch (e) {
+      console.error("[DutyLookup] error:", e);
       setError(e instanceof Error ? e.message : "Lookup failed. Please try again.");
     } finally {
       setLoading(false);
@@ -94,36 +99,36 @@ function DutyRateLookup() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">HS Code</label>
-          <input
-            value={hsCode}
-            onChange={(e) => setHsCode(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLookup()}
-            placeholder="e.g. 8415900099"
-            className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
-          />
+      <form onSubmit={(e) => { e.preventDefault(); handleLookup(); }} noValidate>
+        <div className="grid sm:grid-cols-3 gap-3 mb-4">
+          <div>
+            <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">HS Code</label>
+            <input
+              value={hsCode}
+              onChange={(e) => setHsCode(e.target.value)}
+              placeholder="e.g. 8415900099"
+              className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">Origin Country</label>
+            <CountrySelect value={origin} onValueChange={setOrigin} />
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">Destination Country</label>
+            <CountrySelect value={destination} onValueChange={setDestination} />
+          </div>
         </div>
-        <div>
-          <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">Origin Country</label>
-          <CountrySelect value={origin} onValueChange={setOrigin} />
-        </div>
-        <div>
-          <label className="block text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider mb-1.5">Destination Country</label>
-          <CountrySelect value={destination} onValueChange={setDestination} />
-        </div>
-      </div>
 
-      <button
-        type="button"
-        onClick={handleLookup}
-        disabled={loading}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--cyan)] text-black font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
-      >
-        {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-        {loading ? "Looking up…" : "Lookup Rates"}
-      </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--cyan)] text-black font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          {loading ? "Looking up…" : "Lookup Rates"}
+        </button>
+      </form>
 
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono">

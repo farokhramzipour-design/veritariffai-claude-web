@@ -42,6 +42,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       }
       // If refresh fails, redirect to login
+      console.error('[API] 401 — session expired, redirecting to login');
       if (typeof window !== 'undefined') {
         window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
       }
