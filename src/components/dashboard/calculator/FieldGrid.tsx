@@ -136,10 +136,9 @@ export const FieldGrid = () => {
                 <div>
                   <Label>CIF Value *</Label>
                   <TextInput
-                    type="number"
-                    placeholder="e.g., 5000"
-                    value={line.value}
-                    onChange={(val) => updateLine(i, { value: val })}
+                    placeholder="e.g., 5,000"
+                    value={(() => { const n = parseFloat((line.value ?? '').replace(/,/g, '')); return isNaN(n) ? (line.value ?? '') : n.toLocaleString('en-GB', { maximumFractionDigits: 2 }); })()}
+                    onChange={(val) => updateLine(i, { value: val.replace(/,/g, '') })}
                   />
                 </div>
                 <div>

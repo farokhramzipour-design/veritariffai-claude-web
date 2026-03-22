@@ -279,7 +279,7 @@ const CalculatorInner = () => {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
 
-  const { originCountry, destinationCountry, lines, setStep1, updateLine, addLine, reset, setAdvanced } =
+  const { originCountry, destinationCountry, lines, freightCost, insuranceCost, setStep1, updateLine, addLine, reset, setAdvanced } =
     useCalculatorStore();
 
   // Pre-fill from sessionStorage when navigated from invoice page
@@ -319,15 +319,27 @@ const CalculatorInner = () => {
     setErrorMsg("");
 
     try {
+      // CIF = goods value + freight + insurance distributed proportionally across lines
+      const freight = parseFloat(freightCost?.amount ?? "0") || 0;
+      const insurance = parseFloat(insuranceCost?.amount ?? "0") || 0;
+      const surcharge = freight + insurance;
+      const lineValues = validLines.map((l) => parseFloat(l.value || "0") || 0);
+      const totalGoods = lineValues.reduce((a, b) => a + b, 0);
+
       const request = {
         origin: originCountry,
         destination: destinationCountry,
-        lines: validLines.map((l) => ({
-          hs_code: l.hs_code,
-          description: l.description || undefined,
-          customs_value: l.value || "0",
-          currency: l.currency || "GBP",
-        })),
+        lines: validLines.map((l, i) => {
+          const goodsVal = lineValues[i];
+          const share = totalGoods > 0 ? goodsVal / totalGoods : 1 / validLines.length;
+          const cifValue = goodsVal + surcharge * share;
+          return {
+            hs_code: l.hs_code,
+            description: l.description || undefined,
+            customs_value: cifValue.toFixed(2),
+            currency: l.currency || "GBP",
+          };
+        }),
       };
 
       const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
