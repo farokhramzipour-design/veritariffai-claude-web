@@ -141,14 +141,14 @@ export function UploadZone({
 
 export function DocumentRow({
   name,
-  ref: docRef,
+  docRef,
   hash,
   status,
   onView,
   onAdd,
 }: {
   name: string;
-  ref?: string;
+  docRef?: string;
   hash?: string;
   status: "uploaded" | "generated" | "missing" | "optional";
   onView?: () => void;

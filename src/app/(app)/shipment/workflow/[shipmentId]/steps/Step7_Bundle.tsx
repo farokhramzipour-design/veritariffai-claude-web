@@ -81,7 +81,7 @@ export function Step7_Bundle() {
             <DocumentRow
               key={doc.name}
               name={doc.name}
-              ref={doc.ref}
+              docRef={doc.ref}
               hash={doc.hash !== "auto" ? doc.hash : undefined}
               status="uploaded"
               onView={() => {}}
@@ -95,7 +95,7 @@ export function Step7_Bundle() {
             <DocumentRow
               key={doc.name}
               name={doc.name}
-              ref={doc.ref}
+              docRef={doc.ref}
               hash={doc.hash}
               status="generated"
               onView={() => {}}
@@ -109,7 +109,7 @@ export function Step7_Bundle() {
             <DocumentRow
               key={doc.name}
               name={doc.name}
-              ref={doc.ref}
+              docRef={doc.ref}
               status="optional"
               onAdd={() => {}}
             />
