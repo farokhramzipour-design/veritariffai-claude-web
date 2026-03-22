@@ -28,6 +28,7 @@ interface CalculatorState {
   lines: ShipmentLineInput[];
   currentStep: 1 | 2 | 3;
   setStep1: (data: Partial<Step1Data>) => void;
+  setAdvanced: (data: { freightCost?: MoneyInput | null; insuranceCost?: MoneyInput | null }) => void;
   addLine: () => void;
   updateLine: (index: number, updates: Partial<ShipmentLineInput>) => void;
   removeLine: (index: number) => void;
@@ -58,6 +59,10 @@ export const useCalculatorStore = create<CalculatorState>()(
       }),
       removeLine: (index) => set((state) => ({
         lines: state.lines.filter((_, i) => i !== index),
+      })),
+      setAdvanced: (data) => set((state) => ({
+        freightCost: data.freightCost !== undefined ? data.freightCost : state.freightCost,
+        insuranceCost: data.insuranceCost !== undefined ? data.insuranceCost : state.insuranceCost,
       })),
       reset: () => set({
         jurisdiction: 'UK',
