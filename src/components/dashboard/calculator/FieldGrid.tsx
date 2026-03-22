@@ -134,7 +134,7 @@ export const FieldGrid = () => {
                   />
                 </div>
                 <div>
-                  <Label>Customs Value *</Label>
+                  <Label>CIF Value *</Label>
                   <TextInput
                     type="number"
                     placeholder="e.g., 5000"

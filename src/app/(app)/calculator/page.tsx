@@ -58,20 +58,18 @@ function applyInvoiceData(
   const incoterm = (data.incoterms ?? data.incoterm) as string | undefined;
   const currency = String(data.currency ?? "GBP");
   const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
-
-  // Incoterm
-  if (incoterm) setStep1({ incoterm });
-
-  // Freight & insurance
   const freightRaw = data.freight_cost ?? data.freight ?? data.freight_value;
   const insuranceRaw = data.insurance_value ?? data.insurance ?? data.insurance_cost;
-  if (freightRaw != null) setAdvanced({ freightCost: { amount: String(freightRaw), currency } });
-  if (insuranceRaw != null) setAdvanced({ insuranceCost: { amount: String(insuranceRaw), currency } });
 
   if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
-    reset();
-    if (origin || dest) setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
-    if (incoterm) setStep1({ incoterm });
+    reset(); // reset first, then apply — so values aren't wiped
+    const step1Patch: Record<string, unknown> = {};
+    if (origin) step1Patch.originCountry = origin;
+    if (dest) step1Patch.destinationCountry = dest;
+    if (incoterm) step1Patch.incoterm = incoterm;
+    if (Object.keys(step1Patch).length) setStep1(step1Patch);
+    if (freightRaw != null) setAdvanced({ freightCost: { amount: String(freightRaw), currency } });
+    if (insuranceRaw != null) setAdvanced({ insuranceCost: { amount: String(insuranceRaw), currency } });
     invoiceLines.forEach((item, i) => {
       const line = item as Record<string, unknown>;
       if (i > 0) addLine();
@@ -83,7 +81,13 @@ function applyInvoiceData(
       });
     });
   } else {
-    if (origin || dest) setStep1({ ...(origin ? { originCountry: origin } : {}), ...(dest ? { destinationCountry: dest } : {}) });
+    const step1Patch: Record<string, unknown> = {};
+    if (origin) step1Patch.originCountry = origin;
+    if (dest) step1Patch.destinationCountry = dest;
+    if (incoterm) step1Patch.incoterm = incoterm;
+    if (Object.keys(step1Patch).length) setStep1(step1Patch);
+    if (freightRaw != null) setAdvanced({ freightCost: { amount: String(freightRaw), currency } });
+    if (insuranceRaw != null) setAdvanced({ insuranceCost: { amount: String(insuranceRaw), currency } });
     updateLine(0, {
       hs_code: String(data.hs_code ?? data.commodity_code ?? ""),
       description: String(data.description ?? data.goods_description ?? ""),

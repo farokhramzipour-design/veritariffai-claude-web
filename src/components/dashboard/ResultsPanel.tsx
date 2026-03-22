@@ -83,7 +83,7 @@ function unwrap(result: Record<string, unknown>): ApiData {
 function buildBreakdown(data: ApiData): CostItem[] {
   const t = data.totals ?? {};
   const rows: Array<{ label: string; rate: string; value?: MoneyAmount }> = [
-    { label: "Customs Value",   rate: "—",             value: t.customs_value },
+    { label: "CIF Value",        rate: "—",             value: t.customs_value },
     { label: "Import Duty",     rate: pct(undefined),  value: t.total_duty },
     { label: "Import VAT",      rate: pct(undefined),  value: t.total_vat },
     { label: "Excise Duty",     rate: "—",             value: t.total_excise },
@@ -100,7 +100,7 @@ function buildBreakdown(data: ApiData): CostItem[] {
   }
 
   return rows
-    .filter(r => money(r.value) > 0 || r.label === "Customs Value")
+    .filter(r => money(r.value) > 0 || r.label === "CIF Value")
     .map(r => ({
       component: r.label,
       rate: r.rate,
@@ -157,7 +157,7 @@ const DUMMY_FACTORS: ConfidenceFactor[] = [
   { factor: "FX rate", contribution: 5, source: "LIVE 1h cache" },
 ];
 const DUMMY_BREAKDOWN: CostItem[] = [
-  { component: "Customs Value",   rate: "—",    amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
+  { component: "CIF Value",       rate: "—",    amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
   { component: "Import Duty",     rate: "4.5%", amount_gbp: 90,   amount_eur: 105.3,amount_usd: 117  },
   { component: "Import VAT",      rate: "20%",  amount_gbp: 418,  amount_eur: 489,  amount_usd: 543  },
 ];
