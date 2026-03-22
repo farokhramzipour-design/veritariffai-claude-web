@@ -114,7 +114,11 @@ function applyInvoiceData(
       updateLine(i, {
         hs_code: String(line.hs_code ?? line.commodity_code ?? ""),
         description: String(line.description ?? line.goods_description ?? ""),
-        value: line.unit_price ?? line.value ?? line.amount ? String(line.unit_price ?? line.value ?? line.amount) : "",
+        value: (() => {
+          // Prefer total/CIF value over unit price
+          const v = line.customs_value ?? line.cif_value ?? line.total_price ?? line.total_value ?? line.amount ?? line.value;
+          return v != null ? String(v) : "";
+        })(),
         currency: String(line.currency ?? currency),
       });
     });
