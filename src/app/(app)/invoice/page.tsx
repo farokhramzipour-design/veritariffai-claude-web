@@ -39,9 +39,35 @@ function InvoiceField({
   );
 }
 
-function renderValue(value: unknown): string {
+const NUM_KEYS = new Set([
+  "quantity", "unit_price", "total_price", "price", "value", "amount",
+  "invoice_value", "total_value", "weight", "weight_kg", "gross_weight",
+  "net_weight", "customs_value",
+]);
+
+const HS_KEYS = new Set(["hs_code", "commodity_code", "tariff_code"]);
+
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat("en-GB").format(n);
+}
+
+function renderValue(value: unknown, key?: string): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
+  // Format numeric values with comma separators
+  if (key && NUM_KEYS.has(key) && typeof value === "number") {
+    return formatNumber(value);
+  }
+  if (typeof value === "number" && !Number.isInteger(value)) {
+    return formatNumber(value);
+  }
+  if (typeof value === "number" && value >= 1000) {
+    return formatNumber(value);
+  }
+  // Normalise HS code: strip spaces → e.g. "7224 90 82 89" → "7224908289"
+  if (key && HS_KEYS.has(key) && typeof value === "string") {
+    return value.replace(/\s+/g, "");
+  }
   return String(value);
 }
 
@@ -268,7 +294,7 @@ export default function InvoiceUploadPage() {
                     <InvoiceField
                       key={f.key}
                       label={f.label}
-                      value={renderValue(payload[f.key])}
+                      value={renderValue(payload[f.key], f.key)}
                       icon={f.icon}
                     />
                   ))}
@@ -283,22 +309,27 @@ export default function InvoiceUploadPage() {
                   Line Items ({lineItems.length})
                 </h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono border-collapse">
+                  <table className="text-left text-xs font-mono border-collapse">
                     <thead>
                       <tr className="border-b border-[var(--border)]">
                         {Object.keys(lineItems[0] as Record<string, unknown>).map(k => (
-                          <th key={k} className="py-2 px-3 text-[var(--muted2)] uppercase text-[10px] tracking-wider">{k.replace(/_/g, " ")}</th>
+                          <th key={k} className="py-2 px-3 text-[var(--muted2)] uppercase text-[10px] tracking-wider whitespace-nowrap">{k.replace(/_/g, " ")}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {(lineItems as Record<string, unknown>[]).map((item, i) => (
-                        <tr key={i} className="border-b border-[rgba(28,45,71,0.3)] hover:bg-[rgba(255,255,255,0.02)]">
-                          {Object.values(item).map((v, j) => (
-                            <td key={j} className="py-2 px-3 text-[var(--text)]">{renderValue(v)}</td>
-                          ))}
-                        </tr>
-                      ))}
+                      {(lineItems as Record<string, unknown>[]).map((item, i) => {
+                        const keys = Object.keys(item);
+                        return (
+                          <tr key={i} className="border-b border-[rgba(28,45,71,0.3)] hover:bg-[rgba(255,255,255,0.02)]">
+                            {Object.values(item).map((v, j) => (
+                              <td key={j} className={`py-2 px-3 text-[var(--text)] whitespace-nowrap ${NUM_KEYS.has(keys[j]) ? "text-right tabular-nums" : ""}`}>
+                                {renderValue(v, keys[j])}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
