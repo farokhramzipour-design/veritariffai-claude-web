@@ -394,6 +394,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveName, setSaveName] = useState("");
   const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const isReal = !!result;
 
@@ -424,6 +425,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
   const handleSaveProfile = async () => {
     if (!result || !saveName.trim()) return;
     setSaveState("saving");
+    setSaveError("");
     try {
       await calculationsApi.createProfile({
         name: saveName.trim(),
@@ -436,14 +438,17 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
           .map(l => ({
             hs_code: l.hs_code,
             description: l.description || undefined,
-            customs_value: l.value || "0",
+            customs_value: parseFloat(l.value) || 0,
             currency: l.currency || "GBP",
           })),
       });
       setSaveState("saved");
       setShowSaveForm(false);
       setSaveName("");
-    } catch {
+    } catch (e) {
+      console.error("[SaveProfile] error:", e);
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Failed to save profile";
+      setSaveError(msg);
       setSaveState("error");
     }
   };
@@ -536,7 +541,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
                 <Save size={14} /> Save as profile
               </button>
               {saveState === "error" && (
-                <p className="text-xs text-red-400 font-mono">Save failed — please try again.</p>
+                <p className="text-xs text-red-400 font-mono">Save failed: {saveError || "please try again."}</p>
               )}
             </div>
           )}

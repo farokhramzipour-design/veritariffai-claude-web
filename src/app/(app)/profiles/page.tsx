@@ -64,13 +64,48 @@ export default function ProfilesPage() {
     setError("");
     try {
       const [res, quotaRes] = await Promise.all([
-        calculationsApi.listProfiles() as Promise<{ items?: Profile[]; results?: Profile[] } | Profile[]>,
-        calculationsApi.getQuota().catch(() => null) as Promise<{ used: number; limit: number | null; remaining: number | null } | null>,
+        calculationsApi.listProfiles() as Promise<unknown>,
+        calculationsApi.getQuota().catch(() => null) as Promise<unknown>,
       ]);
-      setProfiles(Array.isArray(res) ? res : ((res as { items?: Profile[]; results?: Profile[] }).items ?? (res as { items?: Profile[]; results?: Profile[] }).results ?? []));
-      if (quotaRes) setQuota(quotaRes as { used: number; limit: number | null; remaining: number | null });
+      console.log("[Profiles] listProfiles raw:", res);
+      console.log("[Profiles] getQuota raw:", quotaRes);
+
+      // Handle various API response shapes
+      const r = res as Record<string, unknown>;
+      let items: Profile[] = [];
+      if (Array.isArray(res)) {
+        items = res as Profile[];
+      } else if (Array.isArray(r?.items)) {
+        items = r.items as Profile[];
+      } else if (Array.isArray(r?.results)) {
+        items = r.results as Profile[];
+      } else if (Array.isArray(r?.profiles)) {
+        items = r.profiles as Profile[];
+      } else if (Array.isArray(r?.data)) {
+        items = r.data as Profile[];
+      } else if (r?.data && typeof r.data === "object" && !Array.isArray(r.data)) {
+        const inner = r.data as Record<string, unknown>;
+        items = (
+          Array.isArray(inner.items) ? inner.items :
+          Array.isArray(inner.results) ? inner.results :
+          Array.isArray(inner.profiles) ? inner.profiles :
+          []
+        ) as Profile[];
+      }
+      setProfiles(items);
+
+      if (quotaRes && typeof quotaRes === "object") {
+        const q = quotaRes as Record<string, unknown>;
+        const qdata = (q.data && typeof q.data === "object" ? q.data : q) as Record<string, unknown>;
+        setQuota({
+          used: Number(qdata.used ?? 0),
+          limit: qdata.limit != null ? Number(qdata.limit) : null,
+          remaining: qdata.remaining != null ? Number(qdata.remaining) : null,
+        });
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load profiles.");
+      console.error("[Profiles] load error:", e);
+      setError(e instanceof Error ? e.message : typeof e === "string" ? e : "Failed to load profiles.");
     } finally {
       setLoading(false);
     }
