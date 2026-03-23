@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
-  CheckCircle, Upload, FileText, X, Loader2, AlertCircle,
+  CheckCircle, Upload, FileText, X, Loader2, AlertCircle, Save,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
-import { ResultsPanel, AiResultPanel } from "@/components/dashboard/ResultsPanel";
+import { AiResultPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
 import { tariffApi } from "@/lib/api/tariff";
 import { invoiceApi } from "@/lib/api/invoice";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
+
+const AI_RESULT_KEY = "veritariff_ai_result";
 
 // Country name → ISO-2 map (shared between sessionStorage pre-fill and inline upload)
 const COUNTRY_MAP: Record<string, string> = {
@@ -272,17 +274,45 @@ function InvoiceUploadZone({
 
 const CalculatorInner = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [mode, setMode] = useState<"manual" | "invoice">("manual");
   const [showResults, setShowResults] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [calcResult, setCalcResult] = useState<Record<string, unknown> | null>(null);
-  const [calcRequestId, setCalcRequestId] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<Record<string, unknown> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveName, setSaveName] = useState("");
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const { originCountry, destinationCountry, lines, freightCost, insuranceCost, incoterm, setStep1, updateLine, addLine, reset, setAdvanced } =
     useCalculatorStore();
+
+  const handleSaveProfile = async () => {
+    if (!saveName.trim()) return;
+    setSaveState("saving");
+    setSaveError("");
+    try {
+      await calculationsApi.createProfile({
+        name: saveName.trim(),
+        shipment_data: { origin: originCountry, destination: destinationCountry },
+        lines_data: lines.filter(l => l.hs_code).map(l => ({
+          hs_code: l.hs_code,
+          description: l.description || undefined,
+          customs_value: parseFloat(l.value ?? "0") || 0,
+          currency: l.currency || "GBP",
+        })),
+      });
+      setSaveState("saved");
+      setShowSaveForm(false);
+      setSaveName("");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Failed to save";
+      setSaveError(msg);
+      setSaveState("error");
+    }
+  };
 
   // Pre-fill from sessionStorage when navigated from invoice page
   useEffect(() => {
@@ -333,22 +363,6 @@ const CalculatorInner = () => {
       const firstShare = totalGoods > 0 ? firstValue / totalGoods : 1;
       const firstCifValue = firstValue + surcharge * firstShare;
 
-      const syncRequest = {
-        origin: originCountry,
-        destination: destinationCountry,
-        lines: validLines.map((l, i) => {
-          const goodsVal = lineValues[i];
-          const share = totalGoods > 0 ? goodsVal / totalGoods : 1 / validLines.length;
-          const cifValue = goodsVal + surcharge * share;
-          return {
-            hs_code: l.hs_code,
-            description: l.description || undefined,
-            customs_value: cifValue.toFixed(2),
-            currency: l.currency || "GBP",
-          };
-        }),
-      };
-
       const aiRequest: Parameters<typeof tariffApi.importAnalysis>[0] = {
         product_description: firstLine.description || firstLine.hs_code || "",
         origin_country: originCountry!,
@@ -362,34 +376,16 @@ const CalculatorInner = () => {
       };
       console.log("[AI] importAnalysis request:", aiRequest);
 
-      const [syncRes, aiRes] = await Promise.allSettled([
-        calculationsApi.submitSync(syncRequest) as unknown as Promise<Record<string, unknown>>,
-        tariffApi.importAnalysis(aiRequest) as unknown as Promise<Record<string, unknown>>,
-      ]);
-
-      if (syncRes.status === "fulfilled") {
-        const result = syncRes.value;
-        const inner = (result?.data ?? result) as Record<string, unknown>;
-        setCalcResult(result);
-        setCalcRequestId((inner?.request_id ?? null) as string | null);
-      } else {
-        const err = syncRes.reason;
-        const msg = err instanceof Error ? err.message : "Calculation failed.";
-        const detail = typeof err === "object" && err !== null && "detail" in err
-          ? JSON.stringify((err as Record<string, unknown>).detail)
-          : null;
-        setErrorMsg(detail ? `${msg} — ${detail}` : msg);
-      }
-
-      if (aiRes.status === "fulfilled") {
-        console.log("[AI] importAnalysis response:", aiRes.value);
-        setAiResult(aiRes.value as Record<string, unknown>);
-      } else {
-        console.error("[AI] importAnalysis failed:", aiRes.reason);
-      }
-
-      if (syncRes.status === "fulfilled" || aiRes.status === "fulfilled") {
+      try {
+        const aiData = await tariffApi.importAnalysis(aiRequest) as unknown as Record<string, unknown>;
+        console.log("[AI] importAnalysis response:", aiData);
+        setAiResult(aiData);
+        try { sessionStorage.setItem(AI_RESULT_KEY, JSON.stringify(aiData)); } catch { /* ignore */ }
         setShowResults(true);
+      } catch (aiErr) {
+        console.error("[AI] importAnalysis failed:", aiErr);
+        const msg = aiErr instanceof Error ? aiErr.message : typeof aiErr === "string" ? aiErr : "AI analysis failed.";
+        setErrorMsg(msg);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Calculation failed.";
@@ -401,10 +397,10 @@ const CalculatorInner = () => {
 
   const handleNewCalculation = () => {
     setShowResults(false);
-    setCalcResult(null);
-    setCalcRequestId(null);
     setAiResult(null);
     setErrorMsg("");
+    setSaveState("idle");
+    setShowSaveForm(false);
   };
 
   return (
@@ -514,8 +510,8 @@ const CalculatorInner = () => {
                       <div className="flex-1 h-px bg-[var(--border)]" />
                     </div>
 
-                    <div className="space-y-6">
-                      {/* AI Estimation — full width */}
+                    <div className="space-y-4 max-w-4xl">
+                      {/* AI Estimation */}
                       {aiResult ? (
                         <AiResultPanel raw={aiResult} />
                       ) : isCalculating ? (
@@ -530,12 +526,59 @@ const CalculatorInner = () => {
                         </div>
                       )}
 
-                      {/* Save / full report — keep ResultsPanel but visually minimal */}
-                      <ResultsPanel
-                        result={calcResult}
-                        requestId={calcRequestId}
-                        onNewCalculation={handleNewCalculation}
-                      />
+                      {/* Action bar */}
+                      {aiResult && (
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                          {/* Full report */}
+                          <button
+                            onClick={() => router.push("/calculator/result/latest")}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--s1)] border border-[var(--border)] text-sm text-[var(--cyan)] font-mono hover:border-[var(--cyan)] transition-colors"
+                          >
+                            <FileText size={14} /> Full Report
+                          </button>
+
+                          {/* Save as profile */}
+                          {showSaveForm ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <input
+                                value={saveName}
+                                onChange={e => setSaveName(e.target.value)}
+                                placeholder="Profile name…"
+                                className="flex-1 min-w-0 bg-[var(--bg)] border border-[var(--border)] rounded-md px-3 py-2 text-sm font-mono text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+                              />
+                              <button
+                                onClick={handleSaveProfile}
+                                disabled={saveState === "saving" || !saveName.trim()}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-[var(--cyan)] text-black font-semibold text-sm disabled:opacity-50"
+                              >
+                                {saveState === "saving" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                Save
+                              </button>
+                              <button onClick={() => setShowSaveForm(false)} className="px-3 py-2 rounded-md border border-[var(--border)] text-sm text-[var(--muted2)] hover:text-[var(--text)]">
+                                Cancel
+                              </button>
+                            </div>
+                          ) : saveState === "saved" ? (
+                            <span className="flex items-center gap-2 text-sm text-green-400 font-mono">
+                              <CheckCircle size={14} /> Saved to profiles
+                            </span>
+                          ) : (
+                            <div className="flex flex-col gap-1">
+                              <button onClick={() => { setShowSaveForm(true); setSaveState("idle"); }} className="flex items-center gap-2 text-sm text-[var(--muted2)] hover:text-[var(--cyan)] font-mono transition-colors">
+                                <Save size={14} /> Save as profile
+                              </button>
+                              {saveState === "error" && (
+                                <p className="text-xs text-red-400 font-mono">Save failed: {saveError || "please try again."}</p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* New calculation */}
+                          <button onClick={handleNewCalculation} className="ml-auto text-sm text-[var(--muted2)] hover:text-[var(--text)] font-mono transition-colors">
+                            ← New calculation
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
