@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Save, Loader2, CheckCircle, Copy, Check,
-  ChevronDown, ChevronUp, Zap,
+  ChevronDown, ChevronUp, Zap, Brain, AlertTriangle, FileText,
 } from "lucide-react";
 import { ConfidenceMeter } from "./results/ConfidenceMeter";
 import { CostTable } from "./results/CostTable";
@@ -168,15 +168,228 @@ const DUMMY_WARNINGS: Warning[] = [{
   message: "This product may not qualify for the UK-EU TCA 0% preferential duty rate. Standard MFN rate of 4.5% has been applied.",
 }];
 
+// ─── AI Import Analysis panel ─────────────────────────────────────────────────
+
+interface AiCalc {
+  cif_value?: number;
+  duty_amount?: number;
+  vat_amount?: number;
+  total_landed_cost?: number;
+  currency?: string;
+  duty_basis?: string;
+  vat_basis?: string;
+}
+interface AiClassification {
+  primary_hs_code?: string;
+  confidence?: number;
+  alternative_hs_codes?: string[];
+  reasoning_summary?: string;
+  missing_attributes?: string[];
+  review_required?: boolean;
+}
+interface AiRates {
+  duty_rate?: number;
+  vat_rate?: number;
+  preferential_duty_rate?: number;
+  preferential_eligible?: boolean;
+  preferential_agreement?: string;
+}
+interface AiMeasures {
+  anti_dumping?: boolean;
+  anti_dumping_rate?: number;
+  countervailing?: boolean;
+  countervailing_rate?: number;
+}
+interface AiCompliance {
+  documents_required?: string[];
+  notes?: string[];
+}
+interface AiResponse {
+  success?: boolean;
+  classification?: AiClassification;
+  rates?: AiRates;
+  measures?: AiMeasures;
+  compliance?: AiCompliance;
+  calculation?: AiCalc;
+  sources?: { type?: string; provider?: string; model?: string }[];
+}
+
+function fmt(n?: number, currency = "GBP"): string {
+  if (n == null) return "—";
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(n);
+}
+function fmtPct(n?: number): string {
+  if (n == null) return "—";
+  return `${(n * (n <= 1 ? 100 : 1)).toFixed(2)}%`;
+}
+
+function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
+  const [open, setOpen] = useState(false);
+  // unwrap data wrapper if present
+  const ai = ((raw.data && typeof raw.data === "object" ? raw.data : raw) as AiResponse);
+  const calc = ai.calculation;
+  const cls = ai.classification;
+  const rates = ai.rates;
+  const measures = ai.measures;
+  const compliance = ai.compliance;
+  const currency = calc?.currency ?? "GBP";
+
+  const confidencePct = cls?.confidence != null ? Math.round(cls.confidence * 100) : null;
+
+  return (
+    <div className="bg-[var(--s1)] border border-[rgba(0,229,255,0.2)] rounded-lg p-6">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <Brain size={16} className="text-[var(--cyan)]" />
+        <h3 className="font-display text-base font-bold text-[var(--text)]">AI Estimation</h3>
+        <span className="ml-auto text-[10px] font-mono text-[var(--muted2)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.15)] px-2 py-0.5 rounded">
+          /api/v1/import-analysis
+        </span>
+      </div>
+
+      {cls?.review_required && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs text-yellow-400 font-mono">
+          <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+          Review required — AI flagged uncertainty in classification
+        </div>
+      )}
+
+      {/* Classification */}
+      {cls && (
+        <div className="mb-4 p-3 bg-[var(--bg)] rounded-lg border border-[var(--border)]">
+          <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-2">Classification</p>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="font-mono text-lg font-bold text-[var(--cyan)]">{cls.primary_hs_code ?? "—"}</span>
+            {confidencePct != null && (
+              <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
+                confidencePct >= 85 ? "text-green-400 border-green-500/30 bg-green-500/10"
+                  : confidencePct >= 60 ? "text-yellow-400 border-yellow-500/30 bg-yellow-500/10"
+                  : "text-red-400 border-red-500/30 bg-red-500/10"
+              }`}>
+                {confidencePct}% confident
+              </span>
+            )}
+          </div>
+          {cls.reasoning_summary && (
+            <p className="font-mono text-xs text-[var(--muted2)] mt-1">{cls.reasoning_summary}</p>
+          )}
+          {cls.alternative_hs_codes && cls.alternative_hs_codes.length > 0 && (
+            <p className="font-mono text-[10px] text-[var(--muted2)] mt-1">
+              Alternatives: {cls.alternative_hs_codes.join(", ")}
+            </p>
+          )}
+          {cls.missing_attributes && cls.missing_attributes.length > 0 && (
+            <p className="font-mono text-[10px] text-yellow-400 mt-1">
+              Missing: {cls.missing_attributes.join(", ")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Rates */}
+      {rates && (
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {[
+            { label: "Duty Rate", val: fmtPct(rates.duty_rate) },
+            { label: "VAT Rate", val: fmtPct(rates.vat_rate) },
+            { label: "Preferential Rate", val: rates.preferential_eligible ? fmtPct(rates.preferential_duty_rate) : "Not eligible" },
+            { label: "Agreement", val: rates.preferential_agreement ?? "—" },
+          ].map(({ label, val }) => (
+            <div key={label} className="p-2.5 bg-[var(--bg)] rounded border border-[var(--border)]">
+              <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider">{label}</p>
+              <p className="font-mono text-sm font-bold text-[var(--text)] mt-0.5">{val}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Calculation breakdown */}
+      {calc && (
+        <div className="mb-4">
+          <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-2">Cost Breakdown</p>
+          <div className="space-y-1.5">
+            {[
+              { label: "CIF Value", val: fmt(calc.cif_value, currency), sub: calc.duty_basis },
+              { label: "Duty Amount", val: fmt(calc.duty_amount, currency) },
+              { label: "VAT Amount", val: fmt(calc.vat_amount, currency), sub: calc.vat_basis },
+            ].map(({ label, val, sub }) => (
+              <div key={label} className="flex items-center justify-between py-2 px-3 rounded bg-[var(--bg)] border border-[var(--border)]">
+                <div>
+                  <span className="font-mono text-xs text-[var(--muted2)]">{label}</span>
+                  {sub && <p className="font-mono text-[10px] text-[var(--muted2)]">{sub}</p>}
+                </div>
+                <span className="font-mono text-sm font-bold text-[var(--text)]">{val}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between py-2.5 px-3 rounded bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.2)]">
+              <span className="font-mono text-xs font-bold text-[var(--cyan)]">Total Landed Cost</span>
+              <span className="font-mono text-base font-bold text-[var(--cyan)]">{fmt(calc.total_landed_cost, currency)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Measures */}
+      {measures && (measures.anti_dumping || measures.countervailing) && (
+        <div className="mb-4 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+          <p className="font-mono text-[10px] text-yellow-400 uppercase tracking-wider mb-1.5">Trade Measures</p>
+          {measures.anti_dumping && (
+            <p className="font-mono text-xs text-[var(--text)]">
+              Anti-dumping: {fmtPct(measures.anti_dumping_rate)}
+            </p>
+          )}
+          {measures.countervailing && (
+            <p className="font-mono text-xs text-[var(--text)]">
+              Countervailing: {fmtPct(measures.countervailing_rate)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Compliance */}
+      {compliance && ((compliance.documents_required?.length ?? 0) > 0 || (compliance.notes?.length ?? 0) > 0) && (
+        <div className="mb-4 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg">
+          <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">
+            <FileText size={10} className="inline mr-1" />Compliance
+          </p>
+          {compliance.documents_required?.map((d, i) => (
+            <p key={i} className="font-mono text-xs text-[var(--text)]">• {d}</p>
+          ))}
+          {compliance.notes?.map((n, i) => (
+            <p key={i} className="font-mono text-[10px] text-[var(--muted2)] mt-0.5">{n}</p>
+          ))}
+        </div>
+      )}
+
+      {/* Raw collapsible */}
+      <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+        <button
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--s2)] text-xs font-mono text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
+        >
+          <span>Raw AI response</span>
+          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+        {open && (
+          <pre className="p-4 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] max-h-60 overflow-y-auto">
+            {JSON.stringify(raw, null, 2)}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface ResultsPanelProps {
   result?: Record<string, unknown> | null;
   requestId?: string | null;
+  aiResult?: Record<string, unknown> | null;
   onNewCalculation?: () => void;
 }
 
-export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPanelProps) => {
+export const ResultsPanel = ({ result, requestId, aiResult, onNewCalculation }: ResultsPanelProps) => {
   const router = useRouter();
   const { originCountry, destinationCountry, lines } = useCalculatorStore();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -332,6 +545,13 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
       )}
 
       <ResultsActions onNewCalculation={onNewCalculation} />
+
+      {/* AI Estimation panel */}
+      {aiResult && (
+        <div className="mt-8 pt-6 border-t border-[var(--border)]">
+          <AiResultPanel raw={aiResult} />
+        </div>
+      )}
     </div>
   );
 };

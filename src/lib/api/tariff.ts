@@ -18,4 +18,20 @@ export const tariffApi = {
 
   lookupDutyRate: (params: DutyRateParams) =>
     apiClient.get('/api/v1/duty-rate/lookup', { params }),
+
+  importAnalysis: (body: {
+    product_description: string;
+    origin_country: string;
+    destination_country: string;
+    customs_value: number;
+    currency: string;
+    freight?: number;
+    insurance?: number;
+    quantity?: number;
+    quantity_unit?: string;
+    incoterms?: string;
+    manufacturer_name?: string;
+    goods_description_extended?: string;
+  }) =>
+    apiClient.post('/api/v1/import-analysis', body),
 };

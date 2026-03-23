@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
 import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
+import { tariffApi } from "@/lib/api/tariff";
 import { invoiceApi } from "@/lib/api/invoice";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
 
@@ -276,6 +277,7 @@ const CalculatorInner = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calcResult, setCalcResult] = useState<Record<string, unknown> | null>(null);
   const [calcRequestId, setCalcRequestId] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<Record<string, unknown> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
 
@@ -326,7 +328,12 @@ const CalculatorInner = () => {
       const lineValues = validLines.map((l) => parseFloat(l.value || "0") || 0);
       const totalGoods = lineValues.reduce((a, b) => a + b, 0);
 
-      const request = {
+      const firstLine = validLines[0];
+      const firstValue = lineValues[0] || 0;
+      const firstShare = totalGoods > 0 ? firstValue / totalGoods : 1;
+      const firstCifValue = firstValue + surcharge * firstShare;
+
+      const syncRequest = {
         origin: originCountry,
         destination: destinationCountry,
         lines: validLines.map((l, i) => {
@@ -342,17 +349,50 @@ const CalculatorInner = () => {
         }),
       };
 
-      const result = await calculationsApi.submitSync(request) as unknown as Record<string, unknown>;
-      const inner = (result?.data ?? result) as Record<string, unknown>;
-      setCalcResult(result);
-      setCalcRequestId((inner?.request_id ?? null) as string | null);
-      setShowResults(true);
+      const aiRequest = {
+        product_description: firstLine.description || firstLine.hs_code || "",
+        origin_country: originCountry!,
+        destination_country: destinationCountry!,
+        customs_value: parseFloat(firstCifValue.toFixed(2)),
+        currency: firstLine.currency || "GBP",
+        freight,
+        insurance,
+        quantity: 1,
+        incoterms: "",
+        manufacturer_name: "",
+        goods_description_extended: "",
+      };
+
+      const [syncRes, aiRes] = await Promise.allSettled([
+        calculationsApi.submitSync(syncRequest) as unknown as Promise<Record<string, unknown>>,
+        tariffApi.importAnalysis(aiRequest) as unknown as Promise<Record<string, unknown>>,
+      ]);
+
+      if (syncRes.status === "fulfilled") {
+        const result = syncRes.value;
+        const inner = (result?.data ?? result) as Record<string, unknown>;
+        setCalcResult(result);
+        setCalcRequestId((inner?.request_id ?? null) as string | null);
+      } else {
+        const err = syncRes.reason;
+        const msg = err instanceof Error ? err.message : "Calculation failed.";
+        const detail = typeof err === "object" && err !== null && "detail" in err
+          ? JSON.stringify((err as Record<string, unknown>).detail)
+          : null;
+        setErrorMsg(detail ? `${msg} — ${detail}` : msg);
+      }
+
+      if (aiRes.status === "fulfilled") {
+        setAiResult(aiRes.value as Record<string, unknown>);
+      }
+      // AI failure is silent — we still show current-state results if available
+
+      if (syncRes.status === "fulfilled" || aiRes.status === "fulfilled") {
+        setShowResults(true);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Calculation failed.";
-      const detail = typeof err === "object" && err !== null && "detail" in err
-        ? JSON.stringify((err as Record<string, unknown>).detail)
-        : null;
-      setErrorMsg(detail ? `${msg} — ${detail}` : msg);
+      setErrorMsg(msg);
     } finally {
       setIsCalculating(false);
     }
@@ -362,6 +402,7 @@ const CalculatorInner = () => {
     setShowResults(false);
     setCalcResult(null);
     setCalcRequestId(null);
+    setAiResult(null);
     setErrorMsg("");
   };
 
@@ -471,6 +512,7 @@ const CalculatorInner = () => {
                       <ResultsPanel
                         result={calcResult}
                         requestId={calcRequestId}
+                        aiResult={aiResult}
                         onNewCalculation={handleNewCalculation}
                       />
                     </motion.div>
