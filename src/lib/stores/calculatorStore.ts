@@ -27,8 +27,12 @@ interface CalculatorState {
   insuranceCost: MoneyInput | null;
   lines: ShipmentLineInput[];
   currentStep: 1 | 2 | 3;
+  sanctionsCheck: boolean;
+  importerName: string;
+  exporterName: string;
   setStep1: (data: Partial<Step1Data>) => void;
   setAdvanced: (data: { freightCost?: MoneyInput | null; insuranceCost?: MoneyInput | null }) => void;
+  setSanctions: (data: { sanctionsCheck?: boolean; importerName?: string; exporterName?: string }) => void;
   addLine: () => void;
   updateLine: (index: number, updates: Partial<ShipmentLineInput>) => void;
   removeLine: (index: number) => void;
@@ -48,6 +52,9 @@ export const useCalculatorStore = create<CalculatorState>()(
       insuranceCost: null,
       lines: [{ hs_code: '', description: '', value: '', currency: 'GBP' }],
       currentStep: 1,
+      sanctionsCheck: false,
+      importerName: '',
+      exporterName: '',
 
       // Actions
       setStep1: (data) => set((state) => ({ ...state, ...data })),
@@ -64,6 +71,11 @@ export const useCalculatorStore = create<CalculatorState>()(
         freightCost: data.freightCost !== undefined ? data.freightCost : state.freightCost,
         insuranceCost: data.insuranceCost !== undefined ? data.insuranceCost : state.insuranceCost,
       })),
+      setSanctions: (data) => set((state) => ({
+        sanctionsCheck: data.sanctionsCheck !== undefined ? data.sanctionsCheck : state.sanctionsCheck,
+        importerName: data.importerName !== undefined ? data.importerName : state.importerName,
+        exporterName: data.exporterName !== undefined ? data.exporterName : state.exporterName,
+      })),
       reset: () => set({
         jurisdiction: 'UK',
         originCountry: null,
@@ -73,6 +85,9 @@ export const useCalculatorStore = create<CalculatorState>()(
         insuranceCost: null,
         lines: [{ hs_code: '', description: '', value: '', currency: 'GBP' }],
         currentStep: 1,
+        sanctionsCheck: false,
+        importerName: '',
+        exporterName: '',
       }),
       setCurrentStep: (step) => set({ currentStep: step }),
     }),

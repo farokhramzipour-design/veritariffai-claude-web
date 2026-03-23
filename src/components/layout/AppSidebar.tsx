@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Calculator,
@@ -10,11 +11,41 @@ import {
   BookMarked,
 } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
+import { calculationsApi } from "@/lib/api/calculations";
+
+interface Quota {
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+}
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const [quota, setQuota] = useState<Quota | null>(null);
+
+  useEffect(() => {
+    calculationsApi.getQuota()
+      .then((res) => {
+        const r = res as unknown as Record<string, unknown>;
+        const d = (r.data && typeof r.data === "object" ? r.data : r) as Record<string, unknown>;
+        setQuota({
+          used: Number(d.used ?? 0),
+          limit: d.limit != null ? Number(d.limit) : null,
+          remaining: d.remaining != null ? Number(d.remaining) : null,
+        });
+      })
+      .catch(() => {/* silently ignore */});
+  }, []);
 
   const isActive = (path: string) => pathname === path;
+
+  const isPro = quota?.limit === null;
+  const pct = quota && quota.limit ? Math.min(100, (quota.used / quota.limit) * 100) : 0;
+  const barColor = quota?.limit
+    ? quota.used >= quota.limit ? "bg-red-400"
+      : quota.used >= quota.limit * 0.8 ? "bg-yellow-400"
+      : "bg-[var(--cyan)]"
+    : "bg-[var(--cyan)]";
 
   return (
     <aside className="w-64 flex flex-col h-screen border-r border-[var(--border)] bg-[var(--s1)] text-[var(--text)]">
@@ -97,16 +128,31 @@ export default function AppSidebar() {
       </div>
 
       <div className="mt-auto p-6 border-t border-[var(--border)]">
-        <div className="bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.1)] rounded-md p-4 mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-bold text-[var(--cyan)] uppercase tracking-wider">Pro Plan</span>
-            <span className="text-[10px] text-[var(--muted2)]">RENEWS IN 12 DAYS</span>
+        {quota && (
+          <div className="bg-[rgba(0,229,255,0.05)] border border-[rgba(0,229,255,0.1)] rounded-md p-4 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-[var(--cyan)] uppercase tracking-wider">
+                {isPro ? "Pro Plan" : "Free Plan"}
+              </span>
+              {isPro && (
+                <span className="text-[10px] text-[var(--muted2)] uppercase tracking-wider">Unlimited</span>
+              )}
+            </div>
+            {!isPro && (
+              <>
+                <div className="w-full h-1 bg-[var(--s3)] rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-[10px] text-[var(--muted)] mt-2">
+                  {quota.used} / {quota.limit} profiles used
+                  {quota.remaining === 0 && (
+                    <span className="text-red-400 ml-1">— limit reached</span>
+                  )}
+                </p>
+              </>
+            )}
           </div>
-          <div className="w-full h-1 bg-[var(--s3)] rounded-full overflow-hidden">
-            <div className="h-full w-3/4 bg-[var(--cyan)] rounded-full"></div>
-          </div>
-          <p className="text-[10px] text-[var(--muted)] mt-2">47 / 100 calculations used</p>
-        </div>
+        )}
       </div>
     </aside>
 

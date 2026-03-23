@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Shield } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/stores/calculatorStore';
 
 const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) => (
@@ -20,7 +20,7 @@ export const AdvancedOptions = () => {
   const [exciseDuty, setExciseDuty] = useState(false);
   const [ukOrigin, setUkOrigin] = useState(false);
 
-  const { freightCost, insuranceCost, setAdvanced } = useCalculatorStore();
+  const { freightCost, insuranceCost, setAdvanced, sanctionsCheck, importerName, exporterName, setSanctions } = useCalculatorStore();
 
   const insuranceAmount = insuranceCost?.amount ?? '';
   const freightAmount = freightCost?.amount ?? '';
@@ -116,7 +116,47 @@ export const AdvancedOptions = () => {
               checked={ukOrigin}
               onChange={() => setUkOrigin(!ukOrigin)}
             />
+            <Checkbox
+              label="Run sanctions screening (OFAC / UK / EU lists)"
+              checked={sanctionsCheck}
+              onChange={() => setSanctions({ sanctionsCheck: !sanctionsCheck })}
+            />
           </div>
+
+          {sanctionsCheck && (
+            <div className="col-span-2 mt-2 p-4 bg-[rgba(0,229,255,0.04)] border border-[rgba(0,229,255,0.15)] rounded-lg space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Shield size={13} className="text-[var(--cyan)]" />
+                <span className="font-mono text-[10px] text-[var(--cyan)] uppercase tracking-wider">Sanctions Party Details</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-[10px] text-[var(--muted2)] tracking-[0.1em] uppercase mb-1.5">
+                    Exporter / Seller name
+                  </label>
+                  <input
+                    type="text"
+                    value={exporterName}
+                    onChange={(e) => setSanctions({ exporterName: e.target.value })}
+                    placeholder="e.g. Acme Steel Ltd"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] text-[var(--muted2)] tracking-[0.1em] uppercase mb-1.5">
+                    Importer / Buyer name
+                  </label>
+                  <input
+                    type="text"
+                    value={importerName}
+                    onChange={(e) => setSanctions({ importerName: e.target.value })}
+                    placeholder="e.g. Europa Metals GmbH"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -514,44 +514,28 @@ const CalculatorInner = () => {
                       <div className="flex-1 h-px bg-[var(--border)]" />
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-                      {/* Panel 1 — Current Calculation */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono uppercase border bg-[rgba(0,229,255,0.08)] border-[rgba(0,229,255,0.25)] text-[var(--cyan)]">
-                            Current Calculation
-                          </span>
-                          <span className="font-mono text-[10px] text-[var(--muted2)]">/api/v1/calculations/sync</span>
+                    <div className="space-y-6">
+                      {/* AI Estimation — full width */}
+                      {aiResult ? (
+                        <AiResultPanel raw={aiResult} />
+                      ) : isCalculating ? (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
+                          <Loader2 size={24} className="animate-spin" />
+                          <p className="font-mono text-sm">Running AI analysis…</p>
                         </div>
-                        <ResultsPanel
-                          result={calcResult}
-                          requestId={calcRequestId}
-                          onNewCalculation={handleNewCalculation}
-                        />
-                      </div>
+                      ) : (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
+                          <p className="font-mono text-sm text-center">AI estimation unavailable</p>
+                          <p className="font-mono text-xs text-center">The AI analysis could not be completed for this shipment.</p>
+                        </div>
+                      )}
 
-                      {/* Panel 2 — AI Estimation */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono uppercase border bg-[rgba(99,102,241,0.1)] border-[rgba(99,102,241,0.3)] text-indigo-400">
-                            AI Estimation
-                          </span>
-                          <span className="font-mono text-[10px] text-[var(--muted2)]">/api/v1/import-analysis</span>
-                        </div>
-                        {aiResult ? (
-                          <AiResultPanel raw={aiResult} />
-                        ) : isCalculating ? (
-                          <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
-                            <Loader2 size={24} className="animate-spin" />
-                            <p className="font-mono text-sm">Running AI analysis…</p>
-                          </div>
-                        ) : (
-                          <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
-                            <p className="font-mono text-sm text-center">AI estimation unavailable</p>
-                            <p className="font-mono text-xs text-center">The AI analysis could not be completed for this shipment.</p>
-                          </div>
-                        )}
-                      </div>
+                      {/* Save / full report — keep ResultsPanel but visually minimal */}
+                      <ResultsPanel
+                        result={calcResult}
+                        requestId={calcRequestId}
+                        onNewCalculation={handleNewCalculation}
+                      />
                     </div>
                   </motion.div>
                 )}

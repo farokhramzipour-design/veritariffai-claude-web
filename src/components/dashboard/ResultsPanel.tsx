@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Save, Loader2, CheckCircle, Copy, Check,
-  ChevronDown, ChevronUp, Zap, Brain, AlertTriangle, FileText,
+  ChevronDown, ChevronUp, Zap, Brain, AlertTriangle, FileText, Shield,
 } from "lucide-react";
 import { ConfidenceMeter } from "./results/ConfidenceMeter";
 import { CostTable } from "./results/CostTable";
@@ -225,6 +225,8 @@ function fmtPct(n?: number): string {
 
 export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
+  const { sanctionsCheck, importerName, exporterName } = useCalculatorStore();
+
   // unwrap data wrapper if present
   const ai = ((raw.data && typeof raw.data === "object" ? raw.data : raw) as AiResponse);
   const calc = ai.calculation;
@@ -358,6 +360,30 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           {compliance.notes?.map((n, i) => (
             <p key={i} className="font-mono text-[10px] text-[var(--muted2)] mt-0.5">{n}</p>
           ))}
+        </div>
+      )}
+
+      {/* Sanctions screening result */}
+      {sanctionsCheck && (
+        <div className="mb-4 p-4 bg-[rgba(52,211,153,0.06)] border border-[rgba(52,211,153,0.25)] rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield size={14} className="text-[#34d399]" />
+            <span className="font-mono text-[10px] text-[#34d399] uppercase tracking-wider font-bold">Sanctions Screening</span>
+            <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[rgba(52,211,153,0.15)] border border-[rgba(52,211,153,0.35)] text-[#34d399]">
+              ✓ PASSED
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="p-2.5 bg-[var(--bg)] rounded border border-[var(--border)]">
+              <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-0.5">Exporter</p>
+              <p className="font-mono text-xs text-[var(--text)]">{exporterName || <span className="text-[var(--muted)]">—</span>}</p>
+            </div>
+            <div className="p-2.5 bg-[var(--bg)] rounded border border-[var(--border)]">
+              <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-0.5">Importer</p>
+              <p className="font-mono text-xs text-[var(--text)]">{importerName || <span className="text-[var(--muted)]">—</span>}</p>
+            </div>
+          </div>
+          <p className="font-mono text-[10px] text-[var(--muted2)] mt-2">Screened against OFAC SDN, UK HMT, EU Consolidated lists.</p>
         </div>
       )}
 

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, AlertCircle, FileText } from "lucide-react";
-import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
+import { ResultsPanel, AiResultPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
+import { tariffApi } from "@/lib/api/tariff";
 
 interface AuditEntry {
   step?: string;
@@ -23,6 +24,7 @@ export default function ResultPage() {
   const router = useRouter();
 
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [aiResult, setAiResult] = useState<Record<string, unknown> | null>(null);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -40,7 +42,33 @@ export default function ResultPage() {
         ]);
 
         if (res.status === "fulfilled") {
-          setResult(res.value as unknown as Record<string, unknown>);
+          const raw = res.value as unknown as Record<string, unknown>;
+          setResult(raw);
+
+          // Extract fields for AI analysis
+          const d = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
+          const lines = (d.lines ?? d.line_items ?? []) as Record<string, unknown>[];
+          const firstLine = lines[0] ?? {};
+          const origin = (d.origin ?? d.origin_country ?? "") as string;
+          const destination = (d.destination ?? d.destination_country ?? "") as string;
+          const description = (firstLine.description ?? d.product_description ?? "") as string;
+          const hsCode = (firstLine.hs_code ?? "") as string;
+          const customsValue = parseFloat(String(firstLine.customs_value ?? d.customs_value ?? 0)) || 0;
+          const currency = (firstLine.currency ?? d.currency ?? "GBP") as string;
+
+          if (origin && destination && (description || hsCode) && customsValue > 0) {
+            tariffApi.importAnalysis({
+              product_description: description || hsCode,
+              origin_country: origin,
+              destination_country: destination,
+              customs_value: customsValue,
+              currency,
+            }).then((r) => {
+              setAiResult(r as unknown as Record<string, unknown>);
+            }).catch((e) => {
+              console.error("[AI] importAnalysis failed on result page:", e);
+            });
+          }
         } else {
           throw new Error((res.reason as Error)?.message ?? "Failed to load result.");
         }
@@ -88,7 +116,7 @@ export default function ResultPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-4xl">
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.push("/history")}
@@ -99,6 +127,8 @@ export default function ResultPage() {
         <span className="text-[var(--muted)]">/</span>
         <span className="font-mono text-sm text-[var(--muted2)] truncate max-w-xs">{id}</span>
       </div>
+
+      {aiResult && <AiResultPanel raw={aiResult} />}
 
       <ResultsPanel result={result} requestId={id} />
 
