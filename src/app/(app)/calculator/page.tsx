@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
-import { ResultsPanel } from "@/components/dashboard/ResultsPanel";
+import { ResultsPanel, AiResultPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
 import { tariffApi } from "@/lib/api/tariff";
 import { invoiceApi } from "@/lib/api/invoice";
@@ -492,33 +492,69 @@ const CalculatorInner = () => {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="flex flex-col xl:flex-row gap-6 items-start">
-                <motion.div
-                  layout
-                  className={`w-full ${showResults ? "xl:w-[60%]" : "xl:w-full max-w-4xl mx-auto"} transition-all duration-500`}
-                >
-                  <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} />
-                </motion.div>
-
-                <AnimatePresence>
-                  {showResults && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.4, delay: 0.1 }}
-                      className="w-full xl:w-[40%]"
-                    >
-                      <ResultsPanel
-                        result={calcResult}
-                        requestId={calcRequestId}
-                        aiResult={aiResult}
-                        onNewCalculation={handleNewCalculation}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Calculator form */}
+              <div className={`${showResults ? "max-w-4xl" : "max-w-4xl mx-auto"}`}>
+                <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} />
               </div>
+
+              {/* Results — two panels side by side */}
+              <AnimatePresence>
+                {showResults && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 16 }}
+                    transition={{ duration: 0.35 }}
+                    className="mt-8"
+                  >
+                    {/* Section label */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <h2 className="font-display text-lg font-bold text-[var(--text)]">Results</h2>
+                      <div className="flex-1 h-px bg-[var(--border)]" />
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+                      {/* Panel 1 — Current Calculation */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono uppercase border bg-[rgba(0,229,255,0.08)] border-[rgba(0,229,255,0.25)] text-[var(--cyan)]">
+                            Current Calculation
+                          </span>
+                          <span className="font-mono text-[10px] text-[var(--muted2)]">/api/v1/calculations/sync</span>
+                        </div>
+                        <ResultsPanel
+                          result={calcResult}
+                          requestId={calcRequestId}
+                          onNewCalculation={handleNewCalculation}
+                        />
+                      </div>
+
+                      {/* Panel 2 — AI Estimation */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono uppercase border bg-[rgba(99,102,241,0.1)] border-[rgba(99,102,241,0.3)] text-indigo-400">
+                            AI Estimation
+                          </span>
+                          <span className="font-mono text-[10px] text-[var(--muted2)]">/api/v1/import-analysis</span>
+                        </div>
+                        {aiResult ? (
+                          <AiResultPanel raw={aiResult} />
+                        ) : isCalculating ? (
+                          <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
+                            <Loader2 size={24} className="animate-spin" />
+                            <p className="font-mono text-sm">Running AI analysis…</p>
+                          </div>
+                        ) : (
+                          <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
+                            <p className="font-mono text-sm text-center">AI estimation unavailable</p>
+                            <p className="font-mono text-xs text-center">The AI analysis could not be completed for this shipment.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>

@@ -223,7 +223,7 @@ function fmtPct(n?: number): string {
   return `${(n * (n <= 1 ? 100 : 1)).toFixed(2)}%`;
 }
 
-function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
+export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
   // unwrap data wrapper if present
   const ai = ((raw.data && typeof raw.data === "object" ? raw.data : raw) as AiResponse);
@@ -385,11 +385,10 @@ function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
 interface ResultsPanelProps {
   result?: Record<string, unknown> | null;
   requestId?: string | null;
-  aiResult?: Record<string, unknown> | null;
   onNewCalculation?: () => void;
 }
 
-export const ResultsPanel = ({ result, requestId, aiResult, onNewCalculation }: ResultsPanelProps) => {
+export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPanelProps) => {
   const router = useRouter();
   const { originCountry, destinationCountry, lines } = useCalculatorStore();
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -545,13 +544,6 @@ export const ResultsPanel = ({ result, requestId, aiResult, onNewCalculation }: 
       )}
 
       <ResultsActions onNewCalculation={onNewCalculation} />
-
-      {/* AI Estimation panel */}
-      {aiResult && (
-        <div className="mt-8 pt-6 border-t border-[var(--border)]">
-          <AiResultPanel raw={aiResult} />
-        </div>
-      )}
     </div>
   );
 };
