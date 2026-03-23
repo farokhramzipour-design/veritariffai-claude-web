@@ -438,7 +438,7 @@ export const ResultsPanel = ({ result, requestId, onNewCalculation }: ResultsPan
           .map(l => ({
             hs_code: l.hs_code,
             description: l.description || undefined,
-            customs_value: parseFloat(l.value) || 0,
+            customs_value: parseFloat(l.value ?? "0") || 0,
             currency: l.currency || "GBP",
           })),
       });

@@ -281,7 +281,7 @@ const CalculatorInner = () => {
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
 
-  const { originCountry, destinationCountry, lines, freightCost, insuranceCost, setStep1, updateLine, addLine, reset, setAdvanced } =
+  const { originCountry, destinationCountry, lines, freightCost, insuranceCost, incoterm, setStep1, updateLine, addLine, reset, setAdvanced } =
     useCalculatorStore();
 
   // Pre-fill from sessionStorage when navigated from invoice page
@@ -349,19 +349,18 @@ const CalculatorInner = () => {
         }),
       };
 
-      const aiRequest = {
+      const aiRequest: Parameters<typeof tariffApi.importAnalysis>[0] = {
         product_description: firstLine.description || firstLine.hs_code || "",
         origin_country: originCountry!,
         destination_country: destinationCountry!,
         customs_value: parseFloat(firstCifValue.toFixed(2)),
         currency: firstLine.currency || "GBP",
-        freight,
-        insurance,
+        ...(freight > 0 && { freight }),
+        ...(insurance > 0 && { insurance }),
         quantity: 1,
-        incoterms: "",
-        manufacturer_name: "",
-        goods_description_extended: "",
+        ...(incoterm && { incoterms: incoterm }),
       };
+      console.log("[AI] importAnalysis request:", aiRequest);
 
       const [syncRes, aiRes] = await Promise.allSettled([
         calculationsApi.submitSync(syncRequest) as unknown as Promise<Record<string, unknown>>,
@@ -383,9 +382,11 @@ const CalculatorInner = () => {
       }
 
       if (aiRes.status === "fulfilled") {
+        console.log("[AI] importAnalysis response:", aiRes.value);
         setAiResult(aiRes.value as Record<string, unknown>);
+      } else {
+        console.error("[AI] importAnalysis failed:", aiRes.reason);
       }
-      // AI failure is silent — we still show current-state results if available
 
       if (syncRes.status === "fulfilled" || aiRes.status === "fulfilled") {
         setShowResults(true);
