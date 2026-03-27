@@ -113,15 +113,14 @@ function applyInvoiceData(
     (typeof data.importer_name === "string" && data.importer_name.trim() ? data.importer_name.trim() : null) ??
     (typeof data.buyer_name === "string" && data.buyer_name.trim() ? data.buyer_name.trim() : null);
 
-  if (exporterName || importerName) {
-    setExtractedParties({
-      ...(exporterName ? { extractedExporterName: exporterName } : {}),
-      ...(importerName ? { extractedImporterName: importerName } : {}),
-    });
-  }
-
   if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
     reset(); // reset first, then apply — so values aren't wiped
+    if (exporterName || importerName) {
+      setExtractedParties({
+        ...(exporterName ? { extractedExporterName: exporterName } : {}),
+        ...(importerName ? { extractedImporterName: importerName } : {}),
+      });
+    }
     const step1Patch: Record<string, unknown> = {};
     if (origin) step1Patch.originCountry = origin;
     if (dest) step1Patch.destinationCountry = dest;
@@ -144,6 +143,12 @@ function applyInvoiceData(
       });
     });
   } else {
+    if (exporterName || importerName) {
+      setExtractedParties({
+        ...(exporterName ? { extractedExporterName: exporterName } : {}),
+        ...(importerName ? { extractedImporterName: importerName } : {}),
+      });
+    }
     const step1Patch: Record<string, unknown> = {};
     if (origin) step1Patch.originCountry = origin;
     if (dest) step1Patch.destinationCountry = dest;
