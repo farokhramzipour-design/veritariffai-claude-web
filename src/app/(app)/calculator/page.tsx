@@ -93,6 +93,7 @@ function applyInvoiceData(
   addLine: () => void,
   reset: () => void,
   setAdvanced: (v: { freightCost?: { amount: string; currency: string } | null; insuranceCost?: { amount: string; currency: string } | null }) => void,
+  setExtractedParties: (v: { extractedExporterName?: string; extractedImporterName?: string }) => void,
 ) {
   const origin = toISO(data.origin_country ?? data.country_of_origin);
   const dest = toISO(data.destination ?? data.destination_country);
@@ -101,6 +102,23 @@ function applyInvoiceData(
   const invoiceLines = (data.line_items ?? data.lines ?? data.items) as unknown[] | undefined;
   const freightRaw = data.freight_cost ?? data.freight ?? data.freight_value;
   const insuranceRaw = data.insurance_value ?? data.insurance ?? data.insurance_cost;
+  const exporterName =
+    (typeof data.exporter_seller_name === "string" && data.exporter_seller_name.trim() ? data.exporter_seller_name.trim() : null) ??
+    (typeof (data.seller as any)?.name === "string" && (data.seller as any).name.trim() ? (data.seller as any).name.trim() : null) ??
+    (typeof data.exporter_name === "string" && data.exporter_name.trim() ? data.exporter_name.trim() : null) ??
+    (typeof data.seller_name === "string" && data.seller_name.trim() ? data.seller_name.trim() : null);
+  const importerName =
+    (typeof data.importer_buyer_name === "string" && data.importer_buyer_name.trim() ? data.importer_buyer_name.trim() : null) ??
+    (typeof (data.buyer as any)?.name === "string" && (data.buyer as any).name.trim() ? (data.buyer as any).name.trim() : null) ??
+    (typeof data.importer_name === "string" && data.importer_name.trim() ? data.importer_name.trim() : null) ??
+    (typeof data.buyer_name === "string" && data.buyer_name.trim() ? data.buyer_name.trim() : null);
+
+  if (exporterName || importerName) {
+    setExtractedParties({
+      ...(exporterName ? { extractedExporterName: exporterName } : {}),
+      ...(importerName ? { extractedImporterName: importerName } : {}),
+    });
+  }
 
   if (Array.isArray(invoiceLines) && invoiceLines.length > 0) {
     reset(); // reset first, then apply — so values aren't wiped
@@ -154,7 +172,7 @@ function InvoiceUploadZone({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const { setStep1, updateLine, addLine, reset, setAdvanced } = useCalculatorStore();
+  const { setStep1, updateLine, addLine, reset, setAdvanced, setExtractedParties } = useCalculatorStore();
 
   const handleFile = useCallback((f: File) => {
     if (f.type !== "application/pdf") {
@@ -179,7 +197,15 @@ function InvoiceUploadZone({
     try {
       const raw = (await invoiceApi.upload(file) as unknown) as Record<string, unknown>;
       const data = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
-      applyInvoiceData(data, setStep1 as (v: Record<string, unknown>) => void, updateLine as (i: number, v: Record<string, unknown>) => void, addLine, reset, setAdvanced);
+      applyInvoiceData(
+        data,
+        setStep1 as (v: Record<string, unknown>) => void,
+        updateLine as (i: number, v: Record<string, unknown>) => void,
+        addLine,
+        reset,
+        setAdvanced,
+        setExtractedParties
+      );
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
@@ -286,7 +312,7 @@ const CalculatorInner = () => {
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const { originCountry, destinationCountry, lines, freightCost, insuranceCost, incoterm, setStep1, updateLine, addLine, reset, setAdvanced } =
+  const { originCountry, destinationCountry, lines, freightCost, insuranceCost, incoterm, setStep1, updateLine, addLine, reset, setAdvanced, setExtractedParties } =
     useCalculatorStore();
 
   const handleSaveProfile = async () => {
@@ -322,13 +348,21 @@ const CalculatorInner = () => {
       if (!raw) return;
       sessionStorage.removeItem("invoiceData");
       const data = JSON.parse(raw) as Record<string, unknown>;
-      applyInvoiceData(data, setStep1 as (v: Record<string, unknown>) => void, updateLine as (i: number, v: Record<string, unknown>) => void, addLine, reset, setAdvanced);
+      applyInvoiceData(
+        data,
+        setStep1 as (v: Record<string, unknown>) => void,
+        updateLine as (i: number, v: Record<string, unknown>) => void,
+        addLine,
+        reset,
+        setAdvanced,
+        setExtractedParties
+      );
       setInvoiceBanner(true);
       setTimeout(() => setInvoiceBanner(false), 5000);
     } catch {
       // ignore bad sessionStorage data
     }
-  }, [searchParams, setStep1, updateLine, addLine, reset, setAdvanced]);
+  }, [searchParams, setStep1, updateLine, addLine, reset, setAdvanced, setExtractedParties]);
 
   const handleInvoiceSuccess = () => {
     setMode("manual");

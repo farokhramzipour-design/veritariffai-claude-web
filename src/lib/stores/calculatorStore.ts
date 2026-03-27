@@ -30,9 +30,12 @@ interface CalculatorState {
   sanctionsCheck: boolean;
   importerName: string;
   exporterName: string;
+  extractedImporterName: string;
+  extractedExporterName: string;
   setStep1: (data: Partial<Step1Data>) => void;
   setAdvanced: (data: { freightCost?: MoneyInput | null; insuranceCost?: MoneyInput | null }) => void;
   setSanctions: (data: { sanctionsCheck?: boolean; importerName?: string; exporterName?: string }) => void;
+  setExtractedParties: (data: { extractedImporterName?: string; extractedExporterName?: string }) => void;
   addLine: () => void;
   updateLine: (index: number, updates: Partial<ShipmentLineInput>) => void;
   removeLine: (index: number) => void;
@@ -55,6 +58,8 @@ export const useCalculatorStore = create<CalculatorState>()(
       sanctionsCheck: false,
       importerName: '',
       exporterName: '',
+      extractedImporterName: '',
+      extractedExporterName: '',
 
       // Actions
       setStep1: (data) => set((state) => ({ ...state, ...data })),
@@ -76,6 +81,10 @@ export const useCalculatorStore = create<CalculatorState>()(
         importerName: data.importerName !== undefined ? data.importerName : state.importerName,
         exporterName: data.exporterName !== undefined ? data.exporterName : state.exporterName,
       })),
+      setExtractedParties: (data) => set((state) => ({
+        extractedImporterName: data.extractedImporterName !== undefined ? data.extractedImporterName : state.extractedImporterName,
+        extractedExporterName: data.extractedExporterName !== undefined ? data.extractedExporterName : state.extractedExporterName,
+      })),
       reset: () => set({
         jurisdiction: 'UK',
         originCountry: null,
@@ -88,6 +97,8 @@ export const useCalculatorStore = create<CalculatorState>()(
         sanctionsCheck: false,
         importerName: '',
         exporterName: '',
+        extractedImporterName: '',
+        extractedExporterName: '',
       }),
       setCurrentStep: (step) => set({ currentStep: step }),
     }),

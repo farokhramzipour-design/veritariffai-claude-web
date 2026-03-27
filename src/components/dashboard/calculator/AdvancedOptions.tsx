@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronRight, Shield } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/stores/calculatorStore';
 
@@ -20,7 +20,27 @@ export const AdvancedOptions = () => {
   const [exciseDuty, setExciseDuty] = useState(false);
   const [ukOrigin, setUkOrigin] = useState(false);
 
-  const { freightCost, insuranceCost, setAdvanced, sanctionsCheck, importerName, exporterName, setSanctions } = useCalculatorStore();
+  const {
+    freightCost,
+    insuranceCost,
+    setAdvanced,
+    sanctionsCheck,
+    importerName,
+    exporterName,
+    extractedImporterName,
+    extractedExporterName,
+    setSanctions,
+  } = useCalculatorStore();
+
+  useEffect(() => {
+    if (!sanctionsCheck) return;
+    if ((!importerName && extractedImporterName) || (!exporterName && extractedExporterName)) {
+      setSanctions({
+        ...(exporterName ? {} : extractedExporterName ? { exporterName: extractedExporterName } : {}),
+        ...(importerName ? {} : extractedImporterName ? { importerName: extractedImporterName } : {}),
+      });
+    }
+  }, [sanctionsCheck, importerName, exporterName, extractedImporterName, extractedExporterName, setSanctions]);
 
   const insuranceAmount = insuranceCost?.amount ?? '';
   const freightAmount = freightCost?.amount ?? '';
