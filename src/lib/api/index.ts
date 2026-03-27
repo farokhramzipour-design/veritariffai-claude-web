@@ -10,4 +10,5 @@ export { autofillApi } from './autofill';
 export { hsLookupApi } from './hsLookup';
 export { subscriptionsApi } from './subscriptions';
 export { usersApi } from './users';
+export { analyticsApi } from './analytics';
 export { default as apiClient } from './client';

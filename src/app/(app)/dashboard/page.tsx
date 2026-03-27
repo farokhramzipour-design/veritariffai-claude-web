@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Loader2, AlertCircle, ChevronRight } from "lucide-react";
+import { analyticsApi } from "@/lib/api/analytics";
 import { tariffApi } from "@/lib/api/tariff";
 import { CountrySelect } from "@/components/dashboard/calculator/CountrySelect";
 
@@ -185,6 +186,83 @@ const StatCard = ({ title, value, subtitle }: { title: string; value: string; su
 );
 
 export default function DashboardPage() {
+  const [kpisLoading, setKpisLoading] = useState(true);
+  const [kpisError, setKpisError] = useState<string | null>(null);
+  const [kpis, setKpis] = useState<Awaited<ReturnType<typeof analyticsApi.getKpis>>["data"] | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        setKpisLoading(true);
+        setKpisError(null);
+        const res = await analyticsApi.getKpis();
+        if (!isMounted) return;
+        setKpis(res.data);
+      } catch (e) {
+        if (!isMounted) return;
+        setKpisError(e instanceof Error ? e.message : "Failed to load KPIs.");
+        setKpis(null);
+      } finally {
+        if (!isMounted) return;
+        setKpisLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const formatted = useMemo(() => {
+    if (!kpis) {
+      return {
+        totalCalculatedValue: kpisLoading ? "…" : "—",
+        totalCalculatedSubtitle: kpisLoading ? "loading…" : "across — calcs",
+        avgConfidenceValue: kpisLoading ? "…" : "—",
+        avgConfidenceSubtitle: kpisLoading ? "loading…" : "across all runs",
+        thisMonthValue: kpisLoading ? "…" : "—",
+        thisMonthSubtitle: kpisLoading ? "loading…" : "vs last month",
+      };
+    }
+
+    const amountNumber = Number(kpis.total_calculated.amount);
+    const currency = kpis.total_calculated.currency || "GBP";
+
+    const totalCalculatedValue =
+      Number.isFinite(amountNumber)
+        ? new Intl.NumberFormat("en-GB", {
+            style: "currency",
+            currency,
+            notation: "compact",
+            maximumFractionDigits: 1,
+          }).format(amountNumber)
+        : "—";
+
+    const totalCalculatedSubtitle = `across ${new Intl.NumberFormat("en-GB").format(kpis.total_calculated.calc_count)} calcs`;
+
+    const avgConfidenceValue = Number.isFinite(kpis.avg_confidence_pct)
+      ? `${Math.round(kpis.avg_confidence_pct)}%`
+      : "—";
+
+    const thisMonthValue = `${new Intl.NumberFormat("en-GB").format(kpis.this_month.count)} calcs`;
+    const delta = kpis.this_month.delta_vs_last_month;
+    const deltaAbs = Math.abs(delta);
+    const deltaText =
+      delta === 0
+        ? "—"
+        : `${delta > 0 ? "↑" : "↓"} ${new Intl.NumberFormat("en-GB").format(deltaAbs)}`;
+    const thisMonthSubtitle = `${deltaText} vs last month`;
+
+    return {
+      totalCalculatedValue,
+      totalCalculatedSubtitle,
+      avgConfidenceValue,
+      avgConfidenceSubtitle: "across all runs",
+      thisMonthValue,
+      thisMonthSubtitle,
+    };
+  }, [kpis, kpisLoading]);
+
   return (
     <div className="space-y-8 max-w-5xl">
       {/* Header */}
@@ -199,10 +277,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
+      {kpisError && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono">
+          <AlertCircle size={14} /> {kpisError}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard title="Total Calculated" value="£2.3M" subtitle="across 143 calcs" />
-        <StatCard title="Avg Confidence" value="91%" subtitle="across all runs" />
-        <StatCard title="This Month" value="47 calcs" subtitle="↑ 12 vs last month" />
+        <StatCard title="Total Calculated" value={formatted.totalCalculatedValue} subtitle={formatted.totalCalculatedSubtitle} />
+        <StatCard title="Avg Confidence" value={formatted.avgConfidenceValue} subtitle={formatted.avgConfidenceSubtitle} />
+        <StatCard title="This Month" value={formatted.thisMonthValue} subtitle={formatted.thisMonthSubtitle} />
       </div>
 
       {/* Duty Rate Lookup */}
