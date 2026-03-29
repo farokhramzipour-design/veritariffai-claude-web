@@ -379,6 +379,7 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           <CardKV label="Incoterms" value={input.incoterms ?? "—"} />
           <CardKV label="Customs Value" value={fmt(input.customs_value ?? undefined, input.currency ?? currency)} />
           <CardKV label="Freight" value={input.freight == null ? "—" : fmt(input.freight, input.currency ?? currency)} />
+          <CardKV label="Insurance" value={input.insurance == null ? "—" : fmt(input.insurance, input.currency ?? currency)} />
           <div className="md:col-span-2 p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
             <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Product Description</p>
             <p className="font-mono text-xs text-[var(--text)]">{input.product_description ?? "—"}</p>

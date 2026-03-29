@@ -134,7 +134,7 @@ export const FieldGrid = () => {
                   />
                 </div>
                 <div>
-                  <Label>CIF Value *</Label>
+                  <Label>Customs Value *</Label>
                   <TextInput
                     placeholder="e.g., 5,000"
                     value={(() => { const n = parseFloat((line.value ?? '').replace(/,/g, '')); return isNaN(n) ? (line.value ?? '') : n.toLocaleString('en-GB', { maximumFractionDigits: 2 }); })()}

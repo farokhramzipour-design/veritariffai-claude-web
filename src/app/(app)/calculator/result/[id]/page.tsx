@@ -256,6 +256,121 @@ function Report({ data }: { data: ImportAnalysis }) {
     return rows;
   }, [tariff, vatRate, destination]);
 
+  const safeguardLandscape = useMemo(() => {
+    const matrix = Array.isArray(tariff?.origin_matrix) ? (tariff?.origin_matrix as Record<string, unknown>[]) : [];
+    const originIso = (origin ?? "").toUpperCase();
+    const now = Date.now();
+    const rows: Array<{
+      key: string;
+      countryLabel: string;
+      countryCode: string | null;
+      measure: string;
+      rate: string;
+      orderNo: string;
+      validUntil: string;
+      appliesLabel: string;
+      appliesTone: "green" | "red" | "amber" | "blue" | "cyan";
+      rateTone: "green" | "red" | "amber" | "blue" | "cyan";
+      rule: string | null;
+      expired: boolean;
+    }> = [];
+
+    matrix.forEach((entry) => {
+      const entryCode = String(entry.origin_code ?? "").toUpperCase();
+      const entryName = String((entry.origin_name ?? entryCode) || "—");
+      const entryType = String(entry.origin_code_type ?? "");
+      const records = Array.isArray(entry.records) ? (entry.records as Record<string, unknown>[]) : [];
+
+      records.forEach((rec) => {
+        const mt = String(rec.measure_type ?? "").toUpperCase();
+        if (!["SAFEGUARD", "TARIFF_QUOTA", "IMPORT_CONTROL"].includes(mt)) return;
+
+        const details = (rec.details && typeof rec.details === "object" ? (rec.details as Record<string, unknown>) : null) ?? null;
+        const originText = (details?.origin_text as string | undefined) ?? null;
+        const legalBase = (details?.legal_base as string | undefined) ?? null;
+        const orderNo = (details?.order_no as string | undefined) ?? "—";
+        const validToRaw = (rec.valid_to as string | undefined) ?? null;
+        const validUntil = validToRaw ? formatDate(validToRaw) : "—";
+        const expired = mt === "TARIFF_QUOTA" && validToRaw ? new Date(validToRaw).getTime() < now : false;
+
+        const dutyRate = toNumber(rec.duty_rate);
+        const dutyText = (details?.duty_text as string | undefined) ?? null;
+
+        const measure =
+          mt === "SAFEGUARD"
+            ? "Safeguard duty"
+            : mt === "TARIFF_QUOTA"
+              ? "Tariff quota"
+              : "Import control";
+
+        const rate =
+          mt === "IMPORT_CONTROL"
+            ? (dutyText && dutyText.toLowerCase().includes("prohibit") ? "Prohibited" : "Conditional")
+            : dutyRate != null
+              ? fmtPct(dutyRate)
+              : dutyText ?? "—";
+
+        const rateTone: "green" | "red" | "amber" | "blue" | "cyan" =
+          rate.toLowerCase().includes("prohibit")
+            ? "red"
+            : expired
+              ? "amber"
+              : dutyRate != null
+                ? dutyRate === 0
+                  ? "green"
+                  : "red"
+                : mt === "IMPORT_CONTROL"
+                  ? "amber"
+                  : "cyan";
+
+        let appliesLabel = "N/A";
+        let appliesTone: "green" | "red" | "amber" | "blue" | "cyan" = "blue";
+        if (originIso) {
+          if (entryCode === originIso) {
+            appliesLabel = "Yes";
+            appliesTone = "green";
+          } else if (entryCode === "5005" && originIso === "GB") {
+            appliesLabel = "No — GB exempt via TCA";
+            appliesTone = "red";
+          } else {
+            appliesLabel = `N/A (origin = ${originIso})`;
+            appliesTone = "blue";
+          }
+        }
+
+        const countryLabel =
+          entryCode === "5005" && mt === "SAFEGUARD"
+            ? "5005 (Safeguard group)"
+            : entryCode === "5005" && mt === "TARIFF_QUOTA"
+              ? "5005 (Quota)"
+              : entryType === "country"
+                ? `${flagFor(entryCode)} ${originText ?? entryName}`
+                : originText ?? entryName;
+
+        rows.push({
+          key: `${entryCode}-${mt}-${String(validToRaw ?? "")}-${String(orderNo)}`,
+          countryLabel,
+          countryCode: entryType === "country" ? entryCode : null,
+          measure,
+          rate,
+          orderNo: orderNo || "—",
+          validUntil,
+          appliesLabel,
+          appliesTone,
+          rateTone,
+          rule: legalBase,
+          expired,
+        });
+      });
+    });
+
+    const uniq = new Map<string, (typeof rows)[number]>();
+    rows.forEach((r) => {
+      if (!uniq.has(r.key)) uniq.set(r.key, r);
+    });
+    return Array.from(uniq.values()).sort((a, b) => a.countryLabel.localeCompare(b.countryLabel));
+  }, [tariff, origin]);
+
   const sources = Array.isArray(data.sources) ? (data.sources as Record<string, unknown>[]) : [];
   const sourceLabel = sources
     .map((s) => String(s.provider ?? s.type ?? "").trim())
@@ -405,6 +520,46 @@ function Report({ data }: { data: ImportAnalysis }) {
           </table>
         </div>
       </Card>
+
+      {safeguardLandscape.length > 0 && (
+        <Card title="Additional Context — Safeguard Landscape">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">
+                  <th className="py-2 pr-4">Country / Group</th>
+                  <th className="py-2 pr-4">Measure Type</th>
+                  <th className="py-2 pr-4">Rate</th>
+                  <th className="py-2 pr-4">Order No.</th>
+                  <th className="py-2 pr-4">Valid Until</th>
+                  <th className="py-2">Applies to origin?</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm font-mono">
+                {safeguardLandscape.map((r) => (
+                  <tr key={r.key} className="border-t border-[var(--border)]">
+                    <td className="py-3 pr-4 text-[var(--text)]">{r.countryLabel}</td>
+                    <td className="py-3 pr-4 text-[var(--text)]">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold">{r.measure}</span>
+                        {r.rule && <span className="text-[10px] text-[var(--muted2)]">Rule: {r.rule}</span>}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Pill tone={r.rateTone}>{r.expired ? "Quota expired" : r.rate}</Pill>
+                    </td>
+                    <td className="py-3 pr-4 text-[var(--muted2)]">{r.orderNo}</td>
+                    <td className="py-3 pr-4 text-[var(--muted2)]">{r.validUntil}</td>
+                    <td className="py-3">
+                      <Pill tone={r.appliesTone}>{r.appliesLabel}</Pill>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">

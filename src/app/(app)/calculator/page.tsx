@@ -390,23 +390,22 @@ const CalculatorInner = () => {
     setErrorMsg("");
 
     try {
-      // CIF = goods value + freight + insurance distributed proportionally across lines
       const freight = parseFloat(freightCost?.amount ?? "0") || 0;
       const insurance = parseFloat(insuranceCost?.amount ?? "0") || 0;
-      const surcharge = freight + insurance;
-      const lineValues = validLines.map((l) => parseFloat(l.value || "0") || 0);
-      const totalGoods = lineValues.reduce((a, b) => a + b, 0);
 
       const firstLine = validLines[0];
-      const firstValue = lineValues[0] || 0;
-      const firstShare = totalGoods > 0 ? firstValue / totalGoods : 1;
-      const firstCifValue = firstValue + surcharge * firstShare;
+      const customsValue = parseFloat(firstLine.value || "0") || 0;
+      if (customsValue <= 0) {
+        setErrorMsg("Please enter a customs value for the first line item.");
+        setIsCalculating(false);
+        return;
+      }
 
       const aiRequest: Parameters<typeof tariffApi.importAnalysis>[0] = {
         product_description: firstLine.description || firstLine.hs_code || "",
         origin_country: originCountry!,
         destination_country: destinationCountry!,
-        customs_value: parseFloat(firstCifValue.toFixed(2)),
+        customs_value: parseFloat(customsValue.toFixed(2)),
         currency: firstLine.currency || "GBP",
         ...(freight > 0 && { freight }),
         ...(insurance > 0 && { insurance }),
