@@ -10,12 +10,17 @@ import {
   AlertCircle,
   RefreshCw,
   Calculator,
+  FileText,
   Plus,
   X,
   Zap,
 } from "lucide-react";
 import { calculationsApi } from "@/lib/api/calculations";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
+
+const AI_RESULT_KEY = "veritariff_ai_result";
+const PROFILE_NAME_KEY = "veritariff_profile_name";
+const PROFILE_DESC_KEY = "veritariff_profile_description";
 
 interface Profile {
   id?: string;
@@ -47,7 +52,7 @@ function formatDate(raw: string | undefined) {
 
 export default function ProfilesPage() {
   const router = useRouter();
-  const { setStep1, updateLine, lines } = useCalculatorStore();
+  const { setStep1, updateLine, addLine, reset } = useCalculatorStore();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,14 +131,15 @@ export default function ProfilesPage() {
     }
   };
 
-  const handleLoadProfile = (profile: Profile) => {
+  const handleStartWorkflow = (profile: Profile) => {
+    reset();
     const sd = profile.shipment_data ?? {};
     if (sd.origin) setStep1({ originCountry: sd.origin as string });
     if (sd.destination) setStep1({ destinationCountry: sd.destination as string });
 
     const ld = profile.lines_data ?? [];
+    for (let i = 1; i < ld.length; i++) addLine();
     ld.forEach((line, i) => {
-      if (i >= lines.length) return;
       updateLine(i, {
         hs_code: (line.hs_code ?? "") as string,
         description: (line.description ?? "") as string,
@@ -142,7 +148,22 @@ export default function ProfilesPage() {
       });
     });
 
-    router.push("/calculator?start=1");
+    try {
+      sessionStorage.setItem(PROFILE_NAME_KEY, String(profile.name ?? ""));
+      sessionStorage.setItem(PROFILE_DESC_KEY, String(profile.description ?? ""));
+    } catch {
+      // ignore
+    }
+    router.push("/calculator");
+  };
+
+  const handleShowResult = (profile: Profile) => {
+    if (!profile.last_result) {
+      alert("No saved result for this profile yet.");
+      return;
+    }
+    try { sessionStorage.setItem(AI_RESULT_KEY, JSON.stringify(profile.last_result)); } catch { /* ignore */ }
+    router.push("/calculator/result/latest");
   };
 
   const handleCreate = async () => {
@@ -353,12 +374,20 @@ export default function ProfilesPage() {
                   <span className="ml-auto">{formatDate(profile.updated_at ?? profile.created_at)}</span>
                 </div>
 
-                <button
-                  onClick={() => handleLoadProfile(profile)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.2)] text-[var(--cyan)] text-xs font-bold hover:bg-[rgba(0,229,255,0.14)] transition-colors"
-                >
-                  <Calculator size={14} /> Load into Calculator
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleShowResult(profile)}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.2)] text-[var(--cyan)] text-xs font-bold hover:bg-[rgba(0,229,255,0.14)] transition-colors"
+                  >
+                    <FileText size={14} /> Show result
+                  </button>
+                  <button
+                    onClick={() => handleStartWorkflow(profile)}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-xs font-bold hover:border-[rgba(0,229,255,0.35)] transition-colors"
+                  >
+                    <Zap size={14} /> Start workflow
+                  </button>
+                </div>
               </motion.div>
             );
           })}

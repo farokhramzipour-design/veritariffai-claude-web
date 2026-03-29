@@ -9,36 +9,17 @@ import {
   X,
   Loader2,
   AlertCircle,
-  BookMarked,
-  Plus,
-  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
 import { AiResultPanel } from "@/components/dashboard/ResultsPanel";
-import { calculationsApi } from "@/lib/api/calculations";
 import { tariffApi } from "@/lib/api/tariff";
 import { invoiceApi } from "@/lib/api/invoice";
 import { useCalculatorStore } from "@/lib/stores/calculatorStore";
 
 const AI_RESULT_KEY = "veritariff_ai_result";
-
-interface Profile {
-  id?: string;
-  profile_id?: string;
-  name: string;
-  description?: string | null;
-  created_at?: string;
-  updated_at?: string;
-  shipment_data?: Record<string, unknown>;
-  lines_data?: Record<string, unknown>[];
-  last_result?: Record<string, unknown> | null;
-  [key: string]: unknown;
-}
-
-function getPid(p: Profile) {
-  return (p.id ?? p.profile_id ?? "") as string;
-}
+const PROFILE_NAME_KEY = "veritariff_profile_name";
+const PROFILE_DESC_KEY = "veritariff_profile_description";
 
 // Country name → ISO-2 map (shared between sessionStorage pre-fill and inline upload)
 const COUNTRY_MAP: Record<string, string> = {
@@ -337,10 +318,6 @@ const CalculatorInner = () => {
   const [aiResult, setAiResult] = useState<Record<string, unknown> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [profilesLoading, setProfilesLoading] = useState(true);
-  const [profilesError, setProfilesError] = useState("");
-  const [view, setView] = useState<"select" | "calculate">("calculate");
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
@@ -379,55 +356,18 @@ const CalculatorInner = () => {
   };
 
   const locked = showResults && !!aiResult;
-  const forceCalculator = searchParams?.get("start") === "1" || searchParams?.get("from") === "invoice";
-
-  const parseProfileItems = (res: unknown): Profile[] => {
-    const r = (res && typeof res === "object" ? (res as Record<string, unknown>) : {}) as Record<string, unknown>;
-    if (Array.isArray(res)) return res as Profile[];
-    if (Array.isArray(r.items)) return r.items as Profile[];
-    if (Array.isArray(r.results)) return r.results as Profile[];
-    if (Array.isArray(r.profiles)) return r.profiles as Profile[];
-    if (Array.isArray(r.data)) return r.data as Profile[];
-    if (r.data && typeof r.data === "object" && !Array.isArray(r.data)) {
-      const inner = r.data as Record<string, unknown>;
-      return (
-        (Array.isArray(inner.items) ? inner.items :
-          Array.isArray(inner.results) ? inner.results :
-            Array.isArray(inner.profiles) ? inner.profiles :
-              []) as Profile[]
-      );
-    }
-    return [];
-  };
-
-  const loadProfiles = useCallback(async () => {
-    setProfilesLoading(true);
-    setProfilesError("");
+  useEffect(() => {
     try {
-      const res = await calculationsApi.listProfiles() as unknown;
-      setProfiles(parseProfileItems(res));
-    } catch (e) {
-      setProfilesError(e instanceof Error ? e.message : typeof e === "string" ? e : "Failed to load profiles.");
-      setProfiles([]);
-    } finally {
-      setProfilesLoading(false);
+      const name = sessionStorage.getItem(PROFILE_NAME_KEY);
+      const desc = sessionStorage.getItem(PROFILE_DESC_KEY);
+      if (name) setProfileName(name);
+      if (desc) setProfileDescription(desc);
+      sessionStorage.removeItem(PROFILE_NAME_KEY);
+      sessionStorage.removeItem(PROFILE_DESC_KEY);
+    } catch {
+      // ignore
     }
   }, []);
-
-  useEffect(() => { loadProfiles(); }, [loadProfiles]);
-
-  useEffect(() => {
-    if (forceCalculator) {
-      setView("calculate");
-      return;
-    }
-    if (profilesLoading) {
-      setView("select");
-      return;
-    }
-    if (profiles.length > 0) setView("select");
-    else setView("calculate");
-  }, [forceCalculator, profilesLoading, profiles.length]);
 
   const resetRunState = () => {
     setShowResults(false);
@@ -442,50 +382,6 @@ const CalculatorInner = () => {
   const handleNewCalculation = () => {
     reset();
     resetRunState();
-    if (forceCalculator) setView("calculate");
-    else setView(profiles.length > 0 ? "select" : "calculate");
-  };
-
-  const handleCreateNewCalculation = () => {
-    reset();
-    resetRunState();
-    setView("calculate");
-  };
-
-  const handleStartWorkflowFromProfile = (profile: Profile) => {
-    reset();
-    resetRunState();
-
-    const sd = profile.shipment_data ?? {};
-    const origin = typeof sd.origin === "string" ? sd.origin : null;
-    const destination = typeof sd.destination === "string" ? sd.destination : null;
-    if (origin) setStep1({ originCountry: origin });
-    if (destination) setStep1({ destinationCountry: destination });
-
-    const ld = Array.isArray(profile.lines_data) ? profile.lines_data : [];
-    for (let i = 1; i < ld.length; i++) addLine();
-    for (let i = 0; i < ld.length; i++) {
-      const line = ld[i] ?? {};
-      updateLine(i, {
-        hs_code: (line.hs_code ?? "") as string,
-        description: (line.description ?? "") as string,
-        value: line.customs_value != null ? String(line.customs_value) : "",
-        currency: (line.currency ?? "GBP") as string,
-      });
-    }
-
-    setProfileName(profile.name ?? "");
-    setProfileDescription((profile.description ?? "") as string);
-    setView("calculate");
-  };
-
-  const handleShowCalculationResult = (profile: Profile) => {
-    if (!profile.last_result) {
-      alert("No saved result for this profile yet. Start workflow to run a calculation first.");
-      return;
-    }
-    try { sessionStorage.setItem(AI_RESULT_KEY, JSON.stringify(profile.last_result)); } catch { /* ignore */ }
-    router.push("/calculator/result/latest");
   };
 
   const runImportAnalysis = async (name: string, description: string) => {
@@ -530,7 +426,6 @@ const CalculatorInner = () => {
       setAiResult(aiData);
       try { sessionStorage.setItem(AI_RESULT_KEY, JSON.stringify(aiData)); } catch { /* ignore */ }
       setShowResults(true);
-      loadProfiles();
     } catch (aiErr) {
       const msg = aiErr instanceof Error ? aiErr.message : typeof aiErr === "string" ? aiErr : "AI analysis failed.";
       setErrorMsg(msg);
@@ -570,240 +465,138 @@ const CalculatorInner = () => {
             Estimate landed cost, duties, and taxes for international shipments.
           </p>
         </header>
+        <div className="flex gap-1 mb-6 p-1 bg-[var(--s1)] border border-[var(--border)] rounded-lg w-fit">
+          <button
+            onClick={() => setMode("manual")}
+            disabled={locked}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              mode === "manual"
+                ? "bg-[var(--cyan)] text-black"
+                : "text-[var(--muted2)] hover:text-[var(--text)]"
+            }`}
+          >
+            ✏️ Manual Entry
+          </button>
+          <button
+            onClick={() => setMode("invoice")}
+            disabled={locked}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              mode === "invoice"
+                ? "bg-[var(--cyan)] text-black"
+                : "text-[var(--muted2)] hover:text-[var(--text)]"
+            }`}
+          >
+            <Upload size={14} /> Upload Invoice
+          </button>
+        </div>
 
-        {view === "select" && (
-          <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-lg font-bold flex items-center gap-2">
-                  <BookMarked size={18} className="text-[var(--cyan)]" />
-                  Profiles
-                </h2>
-                <p className="font-mono text-xs text-[var(--muted2)] mt-1">
-                  Show the last result for a profile, or start a new workflow.
-                </p>
-              </div>
-              <button
-                onClick={handleCreateNewCalculation}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--cyan)] text-black font-semibold text-sm hover:opacity-90 transition-opacity"
-              >
-                <Plus size={16} /> New calculation
-              </button>
-            </div>
+        <AnimatePresence>
+          {invoiceBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-4 px-4 py-3 bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.25)] rounded-lg text-sm text-[var(--cyan)] font-mono flex items-center gap-2"
+            >
+              <CheckCircle size={14} className="flex-shrink-0" />
+              Calculator pre-filled from your invoice. Review the fields and click Calculate.
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {profilesError && (
-              <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono flex items-center gap-2">
-                <AlertCircle size={14} className="flex-shrink-0" />
-                {profilesError}
-              </div>
-            )}
-
-            {profilesLoading ? (
-              <div className="flex justify-center py-24">
-                <Loader2 size={28} className="animate-spin text-[var(--cyan)]" />
-              </div>
-            ) : profiles.length === 0 ? (
-              <div className="text-center py-24 bg-[var(--s1)] border border-[var(--border)] rounded-xl">
-                <BookMarked size={40} className="text-[var(--muted)] mx-auto mb-4" />
-                <p className="text-[var(--muted2)] text-sm">No profiles yet.</p>
-                <p className="text-xs text-[var(--muted)] mt-1">
-                  Click “New calculation” to create your first one.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {profiles.map((profile, i) => {
-                  const pid = getPid(profile);
-                  const metaOrigin = (profile.shipment_data?.origin as string | undefined) ?? "";
-                  const metaDest = (profile.shipment_data?.destination as string | undefined) ?? "";
-                  const metaDate = (profile.updated_at ?? profile.created_at ?? "") as string;
-                  return (
-                    <motion.div
-                      key={pid || i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="bg-[var(--s1)] border border-[var(--border)] rounded-xl p-5 hover:border-[rgba(0,229,255,0.3)] transition-colors"
-                    >
-                      <div className="mb-3">
-                        <h3 className="font-bold text-sm text-[var(--text)] truncate">{profile.name}</h3>
-                        {profile.description && (
-                          <p className="text-xs text-[var(--muted2)] mt-0.5 line-clamp-2">{profile.description}</p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[10px] font-mono text-[var(--muted2)] mb-4">
-                        {(metaOrigin || metaDest) && (
-                          <span>
-                            {metaOrigin || "—"}
-                            <span className="text-[var(--cyan)] mx-1">→</span>
-                            {metaDest || "—"}
-                          </span>
-                        )}
-                        {Array.isArray(profile.lines_data) && (
-                          <span>{profile.lines_data.length} line{profile.lines_data.length !== 1 ? "s" : ""}</span>
-                        )}
-                        <span className="ml-auto">{metaDate ? String(metaDate).slice(0, 10) : "—"}</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => handleShowCalculationResult(profile)}
-                          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.2)] text-[var(--cyan)] text-xs font-bold hover:bg-[rgba(0,229,255,0.14)] transition-colors"
-                        >
-                          <FileText size={14} /> Show result
-                        </button>
-                        <button
-                          onClick={() => handleStartWorkflowFromProfile(profile)}
-                          className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] text-xs font-bold hover:border-[rgba(0,229,255,0.35)] transition-colors"
-                        >
-                          <Zap size={14} /> Start workflow
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+        {errorMsg && (
+          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono flex items-center gap-2">
+            <AlertCircle size={14} className="flex-shrink-0" />
+            {errorMsg}
           </div>
         )}
 
-        {view === "calculate" && (
-          <>
-            <div className="flex gap-1 mb-6 p-1 bg-[var(--s1)] border border-[var(--border)] rounded-lg w-fit">
-              <button
-                onClick={() => setMode("manual")}
-                disabled={locked}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  mode === "manual"
-                    ? "bg-[var(--cyan)] text-black"
-                    : "text-[var(--muted2)] hover:text-[var(--text)]"
-                }`}
-              >
-                ✏️ Manual Entry
-              </button>
-              <button
-                onClick={() => setMode("invoice")}
-                disabled={locked}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  mode === "invoice"
-                    ? "bg-[var(--cyan)] text-black"
-                    : "text-[var(--muted2)] hover:text-[var(--text)]"
-                }`}
-              >
-                <Upload size={14} /> Upload Invoice
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {invoiceBanner && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="mb-4 px-4 py-3 bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.25)] rounded-lg text-sm text-[var(--cyan)] font-mono flex items-center gap-2"
-                >
-                  <CheckCircle size={14} className="flex-shrink-0" />
-                  Calculator pre-filled from your invoice. Review the fields and click Calculate.
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {errorMsg && (
-              <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400 font-mono flex items-center gap-2">
-                <AlertCircle size={14} className="flex-shrink-0" />
-                {errorMsg}
+        <AnimatePresence mode="wait">
+          {mode === "invoice" && (
+            <motion.div
+              key="invoice"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="max-w-2xl mx-auto bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 mb-6"
+            >
+              <div className="mb-6">
+                <h2 className="font-display text-base font-bold text-[var(--text)] mb-1">Upload Commercial Invoice</h2>
+                <p className="font-mono text-xs text-[var(--muted2)]">
+                  AI extracts trade data and pre-fills the calculator — then switch to Manual Entry to review and calculate.
+                </p>
               </div>
-            )}
+              <InvoiceUploadZone onSuccess={handleInvoiceSuccess} />
+            </motion.div>
+          )}
 
-            <AnimatePresence mode="wait">
-              {mode === "invoice" && (
-                <motion.div
-                  key="invoice"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="max-w-2xl mx-auto bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 mb-6"
-                >
-                  <div className="mb-6">
-                    <h2 className="font-display text-base font-bold text-[var(--text)] mb-1">Upload Commercial Invoice</h2>
-                    <p className="font-mono text-xs text-[var(--muted2)]">
-                      AI extracts trade data and pre-fills the calculator — then switch to Manual Entry to review and calculate.
-                    </p>
-                  </div>
-                  <InvoiceUploadZone onSuccess={handleInvoiceSuccess} />
-                </motion.div>
-              )}
+          {mode === "manual" && (
+            <motion.div
+              key="manual"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className={`${showResults ? "max-w-4xl" : "max-w-4xl mx-auto"}`}>
+                <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} isLocked={locked} />
+              </div>
 
-              {mode === "manual" && (
-                <motion.div
-                  key="manual"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className={`${showResults ? "max-w-4xl" : "max-w-4xl mx-auto"}`}>
-                    <CalculatorPanel onCalculate={handleCalculate} isLoading={isCalculating} isLocked={locked} />
-                  </div>
+              <AnimatePresence>
+                {showResults && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 16 }}
+                    transition={{ duration: 0.35 }}
+                    className="mt-8"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <h2 className="font-display text-lg font-bold text-[var(--text)]">Results</h2>
+                      <div className="flex-1 h-px bg-[var(--border)]" />
+                    </div>
 
-                  <AnimatePresence>
-                    {showResults && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 16 }}
-                        transition={{ duration: 0.35 }}
-                        className="mt-8"
-                      >
-                        <div className="flex items-center gap-3 mb-4">
-                          <h2 className="font-display text-lg font-bold text-[var(--text)]">Results</h2>
-                          <div className="flex-1 h-px bg-[var(--border)]" />
+                    <div className="space-y-4 max-w-4xl">
+                      {aiResult ? (
+                        <AiResultPanel raw={aiResult} />
+                      ) : isCalculating ? (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
+                          <Loader2 size={24} className="animate-spin" />
+                          <p className="font-mono text-sm">Running AI analysis…</p>
                         </div>
-
-                        <div className="space-y-4 max-w-4xl">
-                          {aiResult ? (
-                            <AiResultPanel raw={aiResult} />
-                          ) : isCalculating ? (
-                            <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
-                              <Loader2 size={24} className="animate-spin" />
-                              <p className="font-mono text-sm">Running AI analysis…</p>
-                            </div>
-                          ) : (
-                            <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
-                              <p className="font-mono text-sm text-center">AI estimation unavailable</p>
-                              <p className="font-mono text-xs text-center">The AI analysis could not be completed for this shipment.</p>
-                            </div>
-                          )}
-
-                          {aiResult && (
-                            <div className="flex flex-wrap items-center gap-3 pt-1">
-                              <div className="text-xs font-mono text-[var(--muted2)]">
-                                Profile: <span className="text-[var(--text)]">{profileName || "—"}</span>
-                              </div>
-
-                              <button
-                                onClick={() => router.push("/calculator/result/latest")}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--s1)] border border-[var(--border)] text-sm text-[var(--cyan)] font-mono hover:border-[var(--cyan)] transition-colors"
-                              >
-                                <FileText size={14} /> Full Report
-                              </button>
-
-                              <button onClick={handleNewCalculation} className="ml-auto text-sm text-[var(--muted2)] hover:text-[var(--text)] font-mono transition-colors">
-                                ← New calculation
-                              </button>
-                            </div>
-                          )}
+                      ) : (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
+                          <p className="font-mono text-sm text-center">AI estimation unavailable</p>
+                          <p className="font-mono text-xs text-center">The AI analysis could not be completed for this shipment.</p>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+                      )}
+
+                      {aiResult && (
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                          <div className="text-xs font-mono text-[var(--muted2)]">
+                            Profile: <span className="text-[var(--text)]">{profileName || "—"}</span>
+                          </div>
+
+                          <button
+                            onClick={() => router.push("/calculator/result/latest")}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--s1)] border border-[var(--border)] text-sm text-[var(--cyan)] font-mono hover:border-[var(--cyan)] transition-colors"
+                          >
+                            <FileText size={14} /> Show result
+                          </button>
+
+                          <button onClick={handleNewCalculation} className="ml-auto text-sm text-[var(--muted2)] hover:text-[var(--text)] font-mono transition-colors">
+                            ← New calculation
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {profileDialogOpen && (
