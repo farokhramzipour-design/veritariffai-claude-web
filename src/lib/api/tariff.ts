@@ -19,6 +19,9 @@ export const tariffApi = {
   lookupDutyRate: (params: DutyRateParams) =>
     apiClient.get('/api/v1/duty-rate/lookup', { params }),
 
+  lookupTariff: (params: { hs_code: string; origin: string; destination: string; full_report?: boolean }) =>
+    apiClient.get('/api/v1/tariff/lookup', { params }),
+
   importAnalysis: (body: {
     product_description: string;
     origin_country: string;

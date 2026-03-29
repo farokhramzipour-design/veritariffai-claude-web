@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalculatorPanel } from "@/components/dashboard/CalculatorPanel";
-import { AiResultPanel } from "@/components/dashboard/ResultsPanel";
+import { AiResultPanel, TariffLookupReportPanel } from "@/components/dashboard/ResultsPanel";
 import { calculationsApi } from "@/lib/api/calculations";
 import { tariffApi } from "@/lib/api/tariff";
 import { invoiceApi } from "@/lib/api/invoice";
@@ -310,6 +310,7 @@ const CalculatorInner = () => {
   const [showResults, setShowResults] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [aiResult, setAiResult] = useState<Record<string, unknown> | null>(null);
+  const [tariffResult, setTariffResult] = useState<Record<string, unknown> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [invoiceBanner, setInvoiceBanner] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -388,6 +389,8 @@ const CalculatorInner = () => {
 
     setIsCalculating(true);
     setErrorMsg("");
+    setTariffResult(null);
+    setAiResult(null);
 
     try {
       // CIF = goods value + freight + insurance distributed proportionally across lines
@@ -416,6 +419,19 @@ const CalculatorInner = () => {
       console.log("[AI] importAnalysis request:", aiRequest);
 
       try {
+        const tariffData = await tariffApi.lookupTariff({
+          hs_code: firstLine.hs_code,
+          origin: originCountry!,
+          destination: destinationCountry!,
+          full_report: true,
+        }) as unknown as Record<string, unknown>;
+        setTariffResult(tariffData);
+        setShowResults(true);
+      } catch (tariffErr) {
+        console.error("[Tariff] lookup failed:", tariffErr);
+      }
+
+      try {
         const aiData = await tariffApi.importAnalysis(aiRequest) as unknown as Record<string, unknown>;
         console.log("[AI] importAnalysis response:", aiData);
         setAiResult(aiData);
@@ -437,6 +453,7 @@ const CalculatorInner = () => {
   const handleNewCalculation = () => {
     setShowResults(false);
     setAiResult(null);
+    setTariffResult(null);
     setErrorMsg("");
     setSaveState("idle");
     setShowSaveForm(false);
@@ -550,6 +567,20 @@ const CalculatorInner = () => {
                     </div>
 
                     <div className="space-y-4 max-w-4xl">
+                      {tariffResult ? (
+                        <TariffLookupReportPanel raw={tariffResult} />
+                      ) : isCalculating ? (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-3 text-[var(--muted2)]">
+                          <Loader2 size={24} className="animate-spin" />
+                          <p className="font-mono text-sm">Fetching duty and VAT rates…</p>
+                        </div>
+                      ) : (
+                        <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-2 text-[var(--muted2)]">
+                          <p className="font-mono text-sm text-center">Tariff lookup unavailable</p>
+                          <p className="font-mono text-xs text-center">Duty and VAT rates could not be loaded for this route.</p>
+                        </div>
+                      )}
+
                       {/* AI Estimation */}
                       {aiResult ? (
                         <AiResultPanel raw={aiResult} />
