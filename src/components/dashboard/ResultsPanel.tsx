@@ -284,6 +284,16 @@ function CardKV({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CardKVS({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="p-2.5 bg-[var(--bg)] rounded border border-[var(--border)]">
+      <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider">{label}</p>
+      <p className="font-mono text-sm font-bold text-[var(--text)] mt-0.5">{value}</p>
+      {sub && <p className="font-mono text-[10px] text-[var(--muted2)] mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
 function Section({ title, subtitle, children, defaultOpen = false }: { title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -303,16 +313,7 @@ function Section({ title, subtitle, children, defaultOpen = false }: { title: st
   );
 }
 
-function JsonPreview({ value, maxHeight = 240 }: { value: unknown; maxHeight?: number }) {
-  return (
-    <pre className="p-3 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] border border-[var(--border)] rounded max-h-60 overflow-y-auto" style={{ maxHeight }}>
-      {JSON.stringify(value, null, 2)}
-    </pre>
-  );
-}
-
 export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
-  const [open, setOpen] = useState(false);
   const { sanctionsCheck, importerName, exporterName } = useCalculatorStore();
 
   const ai = ((raw.data && typeof raw.data === "object" ? raw.data : raw) as AiResponse);
@@ -328,6 +329,38 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
   const input = ai.input;
   const tariff = ai.tariff_lookup;
   const bestRate = tariff?.best_rate;
+  const duty = tariff?.duty as Record<string, unknown> | undefined;
+  const vat = tariff?.vat as Record<string, unknown> | undefined;
+  const calculated = tariff?.calculated as Record<string, unknown> | undefined;
+  const freshness = tariff?.data_freshness as Record<string, unknown> | undefined;
+  const dutyRate = typeof duty?.human_readable === "string" ? duty.human_readable : duty?.duty_rate != null ? fmtPct(duty.duty_rate as number) : "—";
+  const dutyType = typeof duty?.rate_type === "string" ? duty.rate_type : null;
+  const dutyBasis = typeof duty?.rate_basis === "string" ? duty.rate_basis : null;
+  const dutySource = typeof duty?.source === "string" ? duty.source : null;
+  const dutyOriginName = typeof duty?.origin_name === "string" ? duty.origin_name : null;
+  const dutyConditions = Array.isArray(duty?.conditions) ? duty?.conditions : [];
+  const vatRate = vat?.vat_rate != null ? `${Number(vat.vat_rate)}%` : "—";
+  const vatCountry = typeof vat?.country_code === "string" ? vat.country_code : null;
+  const vatType = typeof vat?.rate_type === "string" ? vat.rate_type : null;
+  const vatSource = typeof vat?.source === "string" ? vat.source : null;
+  const vatAppliesTo = typeof calculated?.vat_applies_to === "string" ? calculated.vat_applies_to : null;
+  const calcNote = typeof calculated?.note === "string" ? calculated.note : null;
+  const calcWarnings = Array.isArray(calculated?.warnings) ? (calculated?.warnings as unknown[]).filter((w) => typeof w === "string") as string[] : [];
+  const dutyLastUpdated = typeof freshness?.duty_last_updated === "string" ? freshness.duty_last_updated : null;
+  const vatLastUpdated = typeof freshness?.vat_last_updated === "string" ? freshness.vat_last_updated : null;
+
+  const dutyTypeLabel =
+    dutyType === "PREFERENTIAL" ? "Preferential rate (requires proof of origin)"
+      : dutyType === "MFN" ? "Standard duty (MFN)"
+        : dutyType === "IMPORT_CONTROL" ? "Import control measure"
+          : dutyType ?? "—";
+
+  const dutyBasisLabel =
+    dutyBasis === "bilateral_preference" ? "Trade agreement preference"
+      : dutyBasis === "MFN" ? "Most-favoured-nation duty"
+        : dutyBasis === "group_preference" ? "Group preference"
+          : dutyBasis === "import_control" ? "Import control condition"
+            : dutyBasis ?? "—";
 
   return (
     <div className="bg-[var(--s1)] border border-[rgba(0,229,255,0.2)] rounded-lg p-6">
@@ -516,33 +549,36 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
 
             {bestRate && (
               <div className="mb-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <CardKV label="Best Origin Code" value={bestRate.origin_code ?? "—"} />
-                <CardKV label="Basis" value={bestRate.rate_basis ?? "—"} />
+                <CardKV label="Best Rate For" value={bestRate.origin_code ?? "—"} />
+                <CardKV label="Why This Rate" value={bestRate.rate_basis ?? "—"} />
                 <CardKV label="Best Duty Rate" value={bestRate.duty_rate == null ? "—" : fmtPct(bestRate.duty_rate)} />
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Applied Duty</p>
-                <JsonPreview value={tariff.duty ?? {}} />
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Applied VAT</p>
-                <JsonPreview value={tariff.vat ?? {}} />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+              <CardKVS label="Customs Duty Rate" value={dutyRate} sub={[dutyTypeLabel, dutyBasisLabel].filter(Boolean).join(" • ")} />
+              <CardKVS label="VAT Rate" value={vatRate} sub={[vatType ? `${vatType} rate` : null, vatCountry ? `Country: ${vatCountry}` : null].filter(Boolean).join(" • ") || undefined} />
+              <CardKVS label="Duty Applies To" value="CIF value" sub="Goods value + freight + insurance (where applicable)" />
+              <CardKVS label="VAT Applies To" value={vatAppliesTo ?? "CIF value + duty"} sub={calcNote ?? undefined} />
             </div>
 
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Calculated Notes</p>
-                <JsonPreview value={tariff.calculated ?? {}} />
-              </div>
-              <div>
-                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Data Freshness</p>
-                <JsonPreview value={tariff.data_freshness ?? {}} />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+              <CardKVS label="Duty Data Source" value={dutySource ?? "—"} sub={dutyOriginName ? `Applied for origin: ${dutyOriginName}` : undefined} />
+              <CardKVS label="VAT Data Source" value={vatSource ?? "—"} sub={vatLastUpdated ? `Last updated: ${vatLastUpdated}` : undefined} />
+              <CardKVS label="Duty Last Updated" value={dutyLastUpdated ?? "—"} />
+              <CardKVS label="Conditions / Documents" value={new Intl.NumberFormat("en-GB").format(dutyConditions?.length ?? 0)} sub={(dutyConditions?.length ?? 0) > 0 ? "Some measures require documents/certificates to apply or to be waived." : undefined} />
             </div>
+
+            {calcWarnings.length > 0 && (
+              <div className="p-3 bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.25)] rounded-lg">
+                <p className="font-mono text-[10px] text-amber-300 uppercase tracking-wider mb-1.5">Important Notes</p>
+                <div className="space-y-1">
+                  {calcWarnings.map((w, i) => (
+                    <p key={i} className="font-mono text-xs text-[var(--text)]">• {w}</p>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
 
           <Section
@@ -551,19 +587,17 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           >
             {(tariff.certificate_codes?.length ?? 0) > 0 ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {tariff.certificate_codes!.map((c) => (
-                    <span
-                      key={c}
-                      className="inline-flex items-center px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono text-[var(--text)]"
-                    >
-                      {c}
-                    </span>
+                    <div key={c} className="p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
+                      <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider">Code</p>
+                      <p className="font-mono text-sm font-bold text-[var(--text)] mt-0.5">{c}</p>
+                      <p className="font-mono text-[10px] text-[var(--muted2)] mt-1">
+                        {tariff.certificate_details?.[c] ?? "Document/certificate requirement"}
+                      </p>
+                    </div>
                   ))}
                 </div>
-                {tariff.certificate_details && (
-                  <JsonPreview value={tariff.certificate_details} maxHeight={260} />
-                )}
               </div>
             ) : (
               <p className="font-mono text-xs text-[var(--muted2)]">No certificate codes returned.</p>
@@ -573,33 +607,52 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           <Section
             title="Measures & Controls"
             subtitle={[
-              (tariff.other_measures?.length ?? 0) > 0 ? `${tariff.other_measures?.length ?? 0} other_measures` : null,
-              (tariff.non_tariff_measures?.length ?? 0) > 0 ? `${tariff.non_tariff_measures?.length ?? 0} non_tariff_measures` : null,
-              (tariff.tariff_quotas?.length ?? 0) > 0 ? `${tariff.tariff_quotas?.length ?? 0} tariff_quotas` : null,
-              (tariff.supplementary_units?.length ?? 0) > 0 ? `${tariff.supplementary_units?.length ?? 0} supplementary_units` : null,
-              (tariff.price_measures?.length ?? 0) > 0 ? `${tariff.price_measures?.length ?? 0} price_measures` : null,
-            ].filter(Boolean).join(" • ") || "None"}
+              (tariff.other_measures?.length ?? 0) > 0 ? `${tariff.other_measures?.length ?? 0} measures` : null,
+              (tariff.non_tariff_measures?.length ?? 0) > 0 ? `${tariff.non_tariff_measures?.length ?? 0} controls` : null,
+              (tariff.tariff_quotas?.length ?? 0) > 0 ? `${tariff.tariff_quotas?.length ?? 0} quotas` : null,
+            ].filter(Boolean).join(" • ") || "No extra measures found"}
           >
-            {(tariff.stacked_measures?.length ?? 0) > 0 && (
-              <div className="mb-3">
-                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Stacked Measures</p>
-                <JsonPreview value={tariff.stacked_measures} maxHeight={300} />
-              </div>
-            )}
             <div className="space-y-3">
               {[
+                { key: "stacked_measures", label: "Applied Measures", value: tariff.stacked_measures },
                 { key: "other_measures", label: "Other Measures", value: tariff.other_measures },
                 { key: "non_tariff_measures", label: "Non-tariff Measures", value: tariff.non_tariff_measures },
-                { key: "tariff_quotas", label: "Tariff Quotas", value: tariff.tariff_quotas },
-                { key: "supplementary_units", label: "Supplementary Units", value: tariff.supplementary_units },
-                { key: "price_measures", label: "Price Measures", value: tariff.price_measures },
               ].map((b) => (
                 <div key={b.key}>
                   <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">
                     {b.label} ({new Intl.NumberFormat("en-GB").format(b.value?.length ?? 0)})
                   </p>
                   {Array.isArray(b.value) && b.value.length > 0 ? (
-                    <JsonPreview value={b.value} maxHeight={300} />
+                    <div className="space-y-2">
+                      {b.value.slice(0, 6).map((m, idx) => {
+                        const rec = (m as Record<string, unknown>);
+                        const details = (rec.details && typeof rec.details === "object" ? (rec.details as Record<string, unknown>) : undefined);
+                        const title =
+                          (details?.measure_type_text as string | undefined) ??
+                          (rec.measure_type as string | undefined) ??
+                          "Measure";
+                        const legal = (details?.legal_base as string | undefined) ?? "—";
+                        const validFrom = (rec.valid_from as string | undefined) ?? "—";
+                        const validTo = (rec.valid_to as string | undefined) ?? null;
+                        const originText =
+                          (details?.origin_text as string | undefined) ??
+                          (rec.origin_country as string | undefined) ??
+                          "—";
+                        return (
+                          <div key={idx} className="p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-mono text-xs font-bold text-[var(--text)]">{title}</p>
+                              <p className="font-mono text-[10px] text-[var(--muted2)]">{validFrom}{validTo ? ` → ${validTo}` : ""}</p>
+                            </div>
+                            <p className="font-mono text-[10px] text-[var(--muted2)] mt-1">Applies to origin: {originText}</p>
+                            <p className="font-mono text-[10px] text-[var(--muted2)] mt-0.5">Legal basis: {legal}</p>
+                          </div>
+                        );
+                      })}
+                      {b.value.length > 6 && (
+                        <p className="font-mono text-[10px] text-[var(--muted2)]">Showing 6 of {b.value.length}.</p>
+                      )}
+                    </div>
                   ) : (
                     <p className="font-mono text-xs text-[var(--muted2)]">None</p>
                   )}
@@ -609,22 +662,6 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           </Section>
         </div>
       )}
-
-      {/* Raw collapsible */}
-      <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--s2)] text-xs font-mono text-[var(--muted2)] hover:text-[var(--text)] transition-colors"
-        >
-          <span>Raw AI response</span>
-          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </button>
-        {open && (
-          <pre className="p-4 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] max-h-60 overflow-y-auto">
-            {JSON.stringify(raw, null, 2)}
-          </pre>
-        )}
-      </div>
     </div>
   );
 }
