@@ -189,6 +189,7 @@ interface AiClassification {
 }
 interface AiRates {
   duty_rate?: number;
+  effective_duty_rate?: number;
   vat_rate?: number;
   preferential_duty_rate?: number;
   preferential_eligible?: boolean;
@@ -199,19 +200,70 @@ interface AiMeasures {
   anti_dumping_rate?: number;
   countervailing?: boolean;
   countervailing_rate?: number;
+  excise?: boolean;
+  excise_rate?: number;
+  other_measures?: Array<Record<string, unknown>>;
 }
 interface AiCompliance {
   documents_required?: string[];
   notes?: string[];
 }
+interface AiInput {
+  product_description?: string;
+  origin_country?: string;
+  destination_country?: string;
+  customs_value?: number;
+  currency?: string;
+  freight?: number | null;
+  insurance?: number | null;
+  quantity?: number | null;
+  quantity_unit?: string | null;
+  incoterms?: string | null;
+  manufacturer_name?: string | null;
+  goods_description_extended?: string | null;
+}
+interface AiSource {
+  type?: string;
+  provider?: string;
+  model?: string | null;
+}
+interface AiTariffLookupBestRate {
+  origin_code?: string;
+  rate_basis?: string;
+  duty_rate?: number;
+  saving_vs_mfn?: number;
+  saving_pct?: number | null;
+}
+interface AiTariffLookup {
+  hs_code?: string;
+  description?: string;
+  origin_country?: string;
+  destination_country?: string;
+  destination_market?: string;
+  best_rate?: AiTariffLookupBestRate;
+  duty?: Record<string, unknown>;
+  vat?: Record<string, unknown>;
+  calculated?: Record<string, unknown>;
+  data_freshness?: Record<string, unknown>;
+  certificate_codes?: string[];
+  certificate_details?: Record<string, string>;
+  stacked_measures?: Array<Record<string, unknown>>;
+  other_measures?: Array<Record<string, unknown>>;
+  non_tariff_measures?: Array<Record<string, unknown>>;
+  tariff_quotas?: Array<Record<string, unknown>>;
+  supplementary_units?: Array<Record<string, unknown>>;
+  price_measures?: Array<Record<string, unknown>>;
+}
 interface AiResponse {
   success?: boolean;
+  input?: AiInput;
   classification?: AiClassification;
   rates?: AiRates;
   measures?: AiMeasures;
   compliance?: AiCompliance;
   calculation?: AiCalc;
-  sources?: { type?: string; provider?: string; model?: string }[];
+  sources?: AiSource[];
+  tariff_lookup?: AiTariffLookup;
 }
 
 function fmt(n?: number, currency = "GBP"): string {
@@ -223,11 +275,46 @@ function fmtPct(n?: number): string {
   return `${(n * (n <= 1 ? 100 : 1)).toFixed(2)}%`;
 }
 
+function CardKV({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-2.5 bg-[var(--bg)] rounded border border-[var(--border)]">
+      <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider">{label}</p>
+      <p className="font-mono text-sm font-bold text-[var(--text)] mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+function Section({ title, subtitle, children, defaultOpen = false }: { title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--s2)] text-left"
+      >
+        <div>
+          <p className="font-display text-sm font-bold text-[var(--text)]">{title}</p>
+          {subtitle && <p className="font-mono text-[10px] text-[var(--muted2)] mt-0.5">{subtitle}</p>}
+        </div>
+        {open ? <ChevronUp size={14} className="text-[var(--muted2)]" /> : <ChevronDown size={14} className="text-[var(--muted2)]" />}
+      </button>
+      {open && <div className="p-4 bg-[var(--s1)]">{children}</div>}
+    </div>
+  );
+}
+
+function JsonPreview({ value, maxHeight = 240 }: { value: unknown; maxHeight?: number }) {
+  return (
+    <pre className="p-3 text-xs font-mono text-[var(--muted2)] overflow-x-auto whitespace-pre-wrap bg-[var(--bg)] border border-[var(--border)] rounded max-h-60 overflow-y-auto" style={{ maxHeight }}>
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+}
+
 export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
   const { sanctionsCheck, importerName, exporterName } = useCalculatorStore();
 
-  // unwrap data wrapper if present
   const ai = ((raw.data && typeof raw.data === "object" ? raw.data : raw) as AiResponse);
   const calc = ai.calculation;
   const cls = ai.classification;
@@ -237,6 +324,10 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
   const currency = calc?.currency ?? "GBP";
 
   const confidencePct = cls?.confidence != null ? Math.round(cls.confidence * 100) : null;
+  const hasTariffLookup = !!ai.tariff_lookup;
+  const input = ai.input;
+  const tariff = ai.tariff_lookup;
+  const bestRate = tariff?.best_rate;
 
   return (
     <div className="bg-[var(--s1)] border border-[rgba(0,229,255,0.2)] rounded-lg p-6">
@@ -248,6 +339,22 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           /api/v1/import-analysis
         </span>
       </div>
+
+      {input && (
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+          <CardKV label="Route" value={`${input.origin_country ?? "—"} → ${input.destination_country ?? "—"}`} />
+          <CardKV label="Incoterms" value={input.incoterms ?? "—"} />
+          <CardKV label="Customs Value" value={fmt(input.customs_value ?? undefined, input.currency ?? currency)} />
+          <CardKV label="Freight" value={input.freight == null ? "—" : fmt(input.freight, input.currency ?? currency)} />
+          <div className="md:col-span-2 p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
+            <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Product Description</p>
+            <p className="font-mono text-xs text-[var(--text)]">{input.product_description ?? "—"}</p>
+            {input.goods_description_extended && (
+              <p className="font-mono text-[10px] text-[var(--muted2)] mt-1 whitespace-pre-wrap">{input.goods_description_extended}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {cls?.review_required && (
         <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs text-yellow-400 font-mono">
@@ -294,6 +401,7 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           {[
             { label: "Duty Rate", val: fmtPct(rates.duty_rate) },
             { label: "VAT Rate", val: fmtPct(rates.vat_rate) },
+            { label: "Effective Duty", val: rates.effective_duty_rate != null ? fmtPct(rates.effective_duty_rate) : "—" },
             { label: "Preferential Rate", val: rates.preferential_eligible ? fmtPct(rates.preferential_duty_rate) : "Not eligible" },
             { label: "Agreement", val: rates.preferential_agreement ?? "—" },
           ].map(({ label, val }) => (
@@ -332,17 +440,15 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
       )}
 
       {/* Measures */}
-      {measures && (measures.anti_dumping || measures.countervailing) && (
+      {measures && (measures.anti_dumping || measures.countervailing || measures.excise || (measures.other_measures?.length ?? 0) > 0) && (
         <div className="mb-4 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
           <p className="font-mono text-[10px] text-yellow-400 uppercase tracking-wider mb-1.5">Trade Measures</p>
-          {measures.anti_dumping && (
-            <p className="font-mono text-xs text-[var(--text)]">
-              Anti-dumping: {fmtPct(measures.anti_dumping_rate)}
-            </p>
-          )}
-          {measures.countervailing && (
-            <p className="font-mono text-xs text-[var(--text)]">
-              Countervailing: {fmtPct(measures.countervailing_rate)}
+          {measures.anti_dumping && <p className="font-mono text-xs text-[var(--text)]">Anti-dumping: {fmtPct(measures.anti_dumping_rate ?? undefined)}</p>}
+          {measures.countervailing && <p className="font-mono text-xs text-[var(--text)]">Countervailing: {fmtPct(measures.countervailing_rate ?? undefined)}</p>}
+          {measures.excise && <p className="font-mono text-xs text-[var(--text)]">Excise: {measures.excise_rate == null ? "Yes" : fmtPct(measures.excise_rate)}</p>}
+          {(measures.other_measures?.length ?? 0) > 0 && (
+            <p className="font-mono text-[10px] text-[var(--muted2)] mt-1">
+              Other measures: {new Intl.NumberFormat("en-GB").format(measures.other_measures?.length ?? 0)}
             </p>
           )}
         </div>
@@ -387,6 +493,123 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
         </div>
       )}
 
+      {hasTariffLookup && tariff && (
+        <div className="mb-4 space-y-3">
+          <Section
+            title="Tariff Lookup Report"
+            subtitle={`${tariff.destination_market ?? "—"} • HS ${tariff.hs_code ?? "—"} • ${tariff.origin_country ?? "—"} → ${tariff.destination_country ?? "—"}`}
+            defaultOpen
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+              <CardKV label="HS Code" value={tariff.hs_code ?? "—"} />
+              <CardKV label="Market" value={tariff.destination_market ?? "—"} />
+              <CardKV label="Origin" value={tariff.origin_country ?? "—"} />
+              <CardKV label="Destination" value={tariff.destination_country ?? "—"} />
+            </div>
+
+            {tariff.description && (
+              <div className="mb-3 p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Tariff Description</p>
+                <p className="font-mono text-xs text-[var(--text)]">{tariff.description}</p>
+              </div>
+            )}
+
+            {bestRate && (
+              <div className="mb-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <CardKV label="Best Origin Code" value={bestRate.origin_code ?? "—"} />
+                <CardKV label="Basis" value={bestRate.rate_basis ?? "—"} />
+                <CardKV label="Best Duty Rate" value={bestRate.duty_rate == null ? "—" : fmtPct(bestRate.duty_rate)} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Applied Duty</p>
+                <JsonPreview value={tariff.duty ?? {}} />
+              </div>
+              <div>
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Applied VAT</p>
+                <JsonPreview value={tariff.vat ?? {}} />
+              </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Calculated Notes</p>
+                <JsonPreview value={tariff.calculated ?? {}} />
+              </div>
+              <div>
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Data Freshness</p>
+                <JsonPreview value={tariff.data_freshness ?? {}} />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="Certificates & Document Codes"
+            subtitle={`${new Intl.NumberFormat("en-GB").format(tariff.certificate_codes?.length ?? 0)} codes`}
+          >
+            {(tariff.certificate_codes?.length ?? 0) > 0 ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {tariff.certificate_codes!.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono text-[var(--text)]"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                {tariff.certificate_details && (
+                  <JsonPreview value={tariff.certificate_details} maxHeight={260} />
+                )}
+              </div>
+            ) : (
+              <p className="font-mono text-xs text-[var(--muted2)]">No certificate codes returned.</p>
+            )}
+          </Section>
+
+          <Section
+            title="Measures & Controls"
+            subtitle={[
+              (tariff.other_measures?.length ?? 0) > 0 ? `${tariff.other_measures?.length ?? 0} other_measures` : null,
+              (tariff.non_tariff_measures?.length ?? 0) > 0 ? `${tariff.non_tariff_measures?.length ?? 0} non_tariff_measures` : null,
+              (tariff.tariff_quotas?.length ?? 0) > 0 ? `${tariff.tariff_quotas?.length ?? 0} tariff_quotas` : null,
+              (tariff.supplementary_units?.length ?? 0) > 0 ? `${tariff.supplementary_units?.length ?? 0} supplementary_units` : null,
+              (tariff.price_measures?.length ?? 0) > 0 ? `${tariff.price_measures?.length ?? 0} price_measures` : null,
+            ].filter(Boolean).join(" • ") || "None"}
+          >
+            {(tariff.stacked_measures?.length ?? 0) > 0 && (
+              <div className="mb-3">
+                <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">Stacked Measures</p>
+                <JsonPreview value={tariff.stacked_measures} maxHeight={300} />
+              </div>
+            )}
+            <div className="space-y-3">
+              {[
+                { key: "other_measures", label: "Other Measures", value: tariff.other_measures },
+                { key: "non_tariff_measures", label: "Non-tariff Measures", value: tariff.non_tariff_measures },
+                { key: "tariff_quotas", label: "Tariff Quotas", value: tariff.tariff_quotas },
+                { key: "supplementary_units", label: "Supplementary Units", value: tariff.supplementary_units },
+                { key: "price_measures", label: "Price Measures", value: tariff.price_measures },
+              ].map((b) => (
+                <div key={b.key}>
+                  <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-1.5">
+                    {b.label} ({new Intl.NumberFormat("en-GB").format(b.value?.length ?? 0)})
+                  </p>
+                  {Array.isArray(b.value) && b.value.length > 0 ? (
+                    <JsonPreview value={b.value} maxHeight={300} />
+                  ) : (
+                    <p className="font-mono text-xs text-[var(--muted2)]">None</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+        </div>
+      )}
+
       {/* Raw collapsible */}
       <div className="border border-[var(--border)] rounded-lg overflow-hidden">
         <button
@@ -401,231 +624,6 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
             {JSON.stringify(raw, null, 2)}
           </pre>
         )}
-      </div>
-    </div>
-  );
-}
-
-type TariffLookupData = {
-  hs_code?: string;
-  description?: string;
-  origin_country?: string;
-  destination_country?: string;
-  destination_market?: string;
-  duty?: {
-    rate_type?: string | null;
-    duty_rate?: number | null;
-    human_readable?: string | null;
-    source?: string | null;
-    rate_basis?: string | null;
-  } | null;
-  vat?: {
-    country_code?: string | null;
-    rate_type?: string | null;
-    vat_rate?: number | null;
-    source?: string | null;
-  } | null;
-  calculated?: {
-    vat_applies_to?: string | null;
-    note?: string | null;
-    warnings?: unknown[] | null;
-  } | null;
-  data_freshness?: {
-    duty_last_updated?: string | null;
-    vat_last_updated?: string | null;
-  } | null;
-  rates_by_origin?: Array<{
-    origin_code?: string;
-    origin_name?: string;
-    origin_code_type?: string;
-    rate_basis?: string | null;
-    rate_type?: string | null;
-    duty_rate?: number | null;
-    valid_from?: string | null;
-    valid_to?: string | null;
-    source?: string | null;
-    human_readable?: string | null;
-    duty_expression?: string | null;
-    conditions?: unknown[] | null;
-  }> | null;
-  certificate_codes?: string[] | null;
-  certificate_details?: Record<string, string> | null;
-  other_measures?: unknown[] | null;
-  tariff_quotas?: unknown[] | null;
-  non_tariff_measures?: unknown[] | null;
-  supplementary_units?: unknown[] | null;
-  price_measures?: unknown[] | null;
-};
-
-function safePctFromRate(n: number | null | undefined): string {
-  if (n == null) return "—";
-  const v = n > 1 ? n : n * 100;
-  return `${v.toFixed(2)}%`;
-}
-
-function pickString(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v.trim() : null;
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-[var(--s2)] border border-[var(--border)]">
-      <span className="text-[11px] font-mono text-[var(--muted2)] uppercase tracking-wider">{label}</span>
-      <span className="text-sm font-mono font-bold text-[var(--text)]">{value}</span>
-    </div>
-  );
-}
-
-export function TariffLookupReportPanel({ raw }: { raw: Record<string, unknown> }) {
-  const data = (raw.data && typeof raw.data === "object" ? (raw.data as TariffLookupData) : (raw as TariffLookupData));
-
-  const dutyRateText =
-    pickString(data.duty?.human_readable) ??
-    (data.duty?.duty_rate != null ? safePctFromRate(data.duty.duty_rate) : null) ??
-    "—";
-  const vatRateText = data.vat?.vat_rate != null ? `${data.vat.vat_rate}%` : "—";
-
-  const warningsCount = Array.isArray(data.calculated?.warnings) ? data.calculated?.warnings?.length ?? 0 : 0;
-
-  const measureCounts = [
-    { label: "Other measures", value: Array.isArray(data.other_measures) ? data.other_measures.length : 0 },
-    { label: "Non-tariff measures", value: Array.isArray(data.non_tariff_measures) ? data.non_tariff_measures.length : 0 },
-    { label: "Tariff quotas", value: Array.isArray(data.tariff_quotas) ? data.tariff_quotas.length : 0 },
-    { label: "Supplementary units", value: Array.isArray(data.supplementary_units) ? data.supplementary_units.length : 0 },
-    { label: "Price measures", value: Array.isArray(data.price_measures) ? data.price_measures.length : 0 },
-  ];
-
-  const origins = Array.isArray(data.rates_by_origin) ? data.rates_by_origin : [];
-  const topOrigins = origins.slice(0, 8);
-  const hasMoreOrigins = origins.length > topOrigins.length;
-
-  return (
-    <div className="bg-[var(--s1)] border border-[rgba(0,229,255,0.2)] rounded-lg p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Zap size={16} className="text-[var(--cyan)]" />
-        <h3 className="font-display text-base font-bold text-[var(--text)]">Tariff &amp; VAT Lookup</h3>
-        <span className="ml-auto text-[10px] font-mono text-[var(--muted2)] bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.15)] px-2 py-0.5 rounded">
-          /api/v1/tariff/lookup
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div className="bg-[var(--s2)] border border-[var(--border)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">HS Code</div>
-          <div className="font-mono text-sm font-bold text-[var(--text)] mt-1">{data.hs_code ?? "—"}</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">{data.description ?? ""}</div>
-        </div>
-        <div className="bg-[var(--s2)] border border-[var(--border)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">Route</div>
-          <div className="font-mono text-sm font-bold text-[var(--text)] mt-1">
-            {(data.origin_country ?? "—")} → {(data.destination_country ?? "—")}
-          </div>
-          <div className="text-xs text-[var(--muted2)] mt-1">Market: {data.destination_market ?? "—"}</div>
-        </div>
-        <div className="bg-[var(--s2)] border border-[var(--border)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">Freshness</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">Duty: {data.data_freshness?.duty_last_updated ?? "—"}</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">VAT: {data.data_freshness?.vat_last_updated ?? "—"}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div className="bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.15)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">Duty</div>
-          <div className="font-display text-2xl font-bold text-[var(--cyan)] mt-1">{dutyRateText}</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">
-            {pickString(data.duty?.rate_type) ? `Type: ${data.duty?.rate_type}` : "Type: —"}
-          </div>
-        </div>
-        <div className="bg-[rgba(0,229,255,0.06)] border border-[rgba(0,229,255,0.15)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">VAT</div>
-          <div className="font-display text-2xl font-bold text-[var(--cyan)] mt-1">{vatRateText}</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">
-            {pickString(data.vat?.country_code) ? `Country: ${data.vat?.country_code}` : "Country: —"}
-          </div>
-        </div>
-        <div className="bg-[var(--s2)] border border-[var(--border)] rounded-lg px-4 py-3">
-          <div className="text-[10px] font-mono text-[var(--muted2)] uppercase tracking-wider">VAT Basis</div>
-          <div className="font-mono text-sm font-bold text-[var(--text)] mt-1">{data.calculated?.vat_applies_to ?? "—"}</div>
-          <div className="text-xs text-[var(--muted2)] mt-1">{data.calculated?.note ?? ""}</div>
-        </div>
-      </div>
-
-      {warningsCount > 0 && (
-        <div className="mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs text-yellow-400 font-mono flex items-start gap-2">
-          <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
-          {warningsCount} warning{warningsCount === 1 ? "" : "s"} returned by tariff lookup.
-        </div>
-      )}
-
-      {(topOrigins.length > 0 || (Array.isArray(data.certificate_codes) && data.certificate_codes.length > 0)) && (
-        <div className="space-y-3">
-          {topOrigins.length > 0 && (
-            <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-              <div className="px-4 py-3 bg-[var(--s2)]">
-                <div className="text-xs font-mono text-[var(--muted2)] uppercase tracking-wider">Rates by Origin (sample)</div>
-              </div>
-              <div className="p-4 space-y-2">
-                {topOrigins.map((r, idx) => (
-                  <div key={`${r.origin_code ?? "x"}-${idx}`} className="flex items-center justify-between gap-3 bg-[var(--bg)] border border-[var(--border)] rounded-lg px-3 py-2">
-                    <div className="min-w-0">
-                      <div className="font-mono text-xs text-[var(--text)] truncate">
-                        {(r.origin_code ?? "—")} {r.origin_name ? `· ${r.origin_name}` : ""}
-                      </div>
-                      <div className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider">
-                        {(r.rate_type ?? "—")} · {(r.rate_basis ?? "—")} · {(r.source ?? "—")}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-xs font-bold text-[var(--cyan)]">
-                        {pickString(r.human_readable) ?? (r.duty_rate != null ? safePctFromRate(r.duty_rate) : "—")}
-                      </div>
-                      <div className="font-mono text-[10px] text-[var(--muted2)]">
-                        {(Array.isArray(r.conditions) ? r.conditions.length : 0) > 0 ? `${(r.conditions as unknown[]).length} conditions` : "no conditions"}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {hasMoreOrigins && (
-                  <div className="text-[10px] font-mono text-[var(--muted2)]">
-                    Showing {topOrigins.length} of {origins.length} origin rates. Use “Raw API response” for full detail.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {Array.isArray(data.certificate_codes) && data.certificate_codes.length > 0 && (
-            <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-              <div className="px-4 py-3 bg-[var(--s2)] flex items-center justify-between">
-                <div className="text-xs font-mono text-[var(--muted2)] uppercase tracking-wider">Certificate Codes</div>
-                <div className="text-[10px] font-mono text-[var(--muted2)]">{data.certificate_codes.length} codes</div>
-              </div>
-              <div className="p-4 flex flex-wrap gap-2">
-                {data.certificate_codes.slice(0, 24).map((c) => (
-                  <span key={c} className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono text-[var(--muted2)]">
-                    {c}
-                  </span>
-                ))}
-                {data.certificate_codes.length > 24 && (
-                  <span className="px-2 py-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[10px] font-mono text-[var(--muted2)]">
-                    +{data.certificate_codes.length - 24} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {measureCounts.map((m) => (
-              <InfoRow key={m.label} label={m.label} value={new Intl.NumberFormat("en-GB").format(m.value)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-6">
-        <RawResult result={raw} />
       </div>
     </div>
   );

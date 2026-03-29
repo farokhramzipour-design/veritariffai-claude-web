@@ -1,14 +1,123 @@
 {
-  "data": {
-    "hs_code": "7208510000",
-    "description": "HS 7208510000",
+  "success": true,
+  "input": {
+    "product_description": "Hot-rolled steel plates, ≥10mm thick",
+    "origin_country": "GB",
+    "destination_country": "DE",
+    "customs_value": 29999,
+    "currency": "GBP",
+    "freight": 1640,
+    "insurance": null,
+    "quantity": 1,
+    "quantity_unit": null,
+    "incoterms": "FCA",
+    "manufacturer_name": null,
+    "goods_description_extended": null
+  },
+  "classification": {
+    "primary_hs_code": "720851",
+    "confidence": 0.95,
+    "alternative_hs_codes": [],
+    "reasoning_summary": "The product is identified as hot-rolled steel plates, thickness ≥10mm, directly matching to 7208.51 under GRI 1 for steel products by thickness and processing method.",
+    "missing_attributes": [],
+    "review_required": false
+  },
+  "rates": {
+    "duty_rate": 0,
+    "effective_duty_rate": 0,
+    "vat_rate": 19,
+    "preferential_duty_rate": 0,
+    "preferential_eligible": true,
+    "preferential_agreement": "UK-EU Trade and Cooperation Agreement (TCA)"
+  },
+  "measures": {
+    "anti_dumping": false,
+    "anti_dumping_rate": null,
+    "countervailing": false,
+    "countervailing_rate": null,
+    "excise": false,
+    "excise_rate": null,
+    "other_measures": [
+      {
+        "hs_code": "7208510000",
+        "destination_market": "EU",
+        "destination_country": "DE",
+        "origin_country": "1008",
+        "measure_type": "IMPORT_CONTROL",
+        "rate_ad_valorem": null,
+        "rate_specific_amount": null,
+        "rate_specific_unit": null,
+        "valid_from": "2023-12-19",
+        "valid_to": "2026-12-31",
+        "source": "TARIC",
+        "details": {
+          "order_no": null,
+          "add_code": null,
+          "legal_base": "Regulation 0833/14",
+          "duty_text": "Cond:  Y cert: L-139 (29):; Y cert: Y-824 (29):; Y cert: Y-878 (29):; Y cert: Y-859 (29):; Y cert: L-143 (29):; Y (09):",
+          "measure_type_text": "Import control",
+          "measure_type_code": "763",
+          "origin_text": "All third countries",
+          "origin_code": "1008"
+        }
+      }
+    ]
+  },
+  "compliance": {
+    "documents_required": [
+      "L-139",
+      "L-143",
+      "N-954",
+      "U-045",
+      "U-078",
+      "U-079",
+      "Y-824",
+      "Y-859",
+      "Y-878",
+      "Y-959",
+      "Y-984",
+      "Y-997",
+      "Proof of origin: Statement on Origin (TCA Annex ORIG-4) or REX"
+    ],
+    "notes": [
+      "GB has no more specific EU duty measure at the 10-digit level. Using MFN (ERGA OMNES 1011) from a parent heading/chapter.",
+      "The UK is a third country to the EU. Standard third-country (MFN) duty applies unless a specific preferential measure exists for this HS code.",
+      "0% preference applies for goods with UK preferential origin.",
+      "Product-specific rules (PSR) must be met.",
+      "Statement on origin required on the invoice for values > EUR 6,000."
+    ]
+  },
+  "calculation": {
+    "cif_value": 31639,
+    "duty_amount": 0,
+    "vat_amount": 6011.41,
+    "total_landed_cost": 37650.41,
+    "currency": "GBP",
+    "duty_basis": "CIF value (customs_value + freight + insurance where applicable)",
+    "vat_basis": "CIF value + import duty"
+  },
+  "sources": [
+    {
+      "type": "ai_classification",
+      "provider": "OpenAI",
+      "model": "gpt-4o"
+    },
+    {
+      "type": "tariff_lookup",
+      "provider": "internal_db",
+      "model": null
+    }
+  ],
+  "tariff_lookup": {
+    "hs_code": "720851",
+    "description": "HS 720851",
     "origin_country": "GB",
     "origin_input": "GB",
     "destination_country": "DE",
     "destination_market": "EU",
     "origin": {
       "origin_code": "GB",
-      "origin_name": "GB",
+      "origin_name": "United Kingdom",
       "origin_code_type": "country",
       "iso2": "GB",
       "iso3": null,
@@ -24,7 +133,7 @@
       {
         "origin_code": "GB",
         "exists": true,
-        "origin_name": "GB",
+        "origin_name": "United Kingdom",
         "origin_code_type": "country",
         "is_group": false,
         "is_erga_omnes": false,
@@ -52,7 +161,7 @@
     "rates_by_origin": [
       {
         "origin_code": "GB",
-        "origin_name": "GB",
+        "origin_name": "United Kingdom",
         "origin_code_type": "country",
         "rate_basis": "bilateral_preference",
         "rate_type": "PREFERENTIAL",
@@ -705,7 +814,7 @@
       },
       {
         "origin_code": "GB",
-        "origin_name": "GB",
+        "origin_name": "United Kingdom",
         "origin_code_type": "country",
         "measure_types": [
           "PREFERENTIAL"
@@ -715,7 +824,7 @@
             "hs_code": "7200000000",
             "market": "EU",
             "origin_code": "GB",
-            "origin_name": "GB",
+            "origin_name": "United Kingdom",
             "origin_code_type": "country",
             "measure_type": "PREFERENTIAL",
             "rate_basis": "bilateral_preference",
@@ -779,7 +888,7 @@
       },
       {
         "origin_code": "ID",
-        "origin_name": "ID",
+        "origin_name": "Indonesia",
         "origin_code_type": "country",
         "measure_types": [
           "TARIFF_QUOTA"
@@ -789,7 +898,7 @@
             "hs_code": "7208510000",
             "market": "EU",
             "origin_code": "ID",
-            "origin_name": "ID",
+            "origin_name": "Indonesia",
             "origin_code_type": "country",
             "measure_type": "TARIFF_QUOTA",
             "rate_basis": "tariff_quota",
@@ -853,7 +962,7 @@
       },
       {
         "origin_code": "IN",
-        "origin_name": "IN",
+        "origin_name": "India",
         "origin_code_type": "country",
         "measure_types": [
           "TARIFF_QUOTA"
@@ -863,7 +972,7 @@
             "hs_code": "7208510000",
             "market": "EU",
             "origin_code": "IN",
-            "origin_name": "IN",
+            "origin_name": "India",
             "origin_code_type": "country",
             "measure_type": "TARIFF_QUOTA",
             "rate_basis": "tariff_quota",
@@ -964,7 +1073,7 @@
       },
       {
         "origin_code": "KP",
-        "origin_name": "KP",
+        "origin_name": "North Korea",
         "origin_code_type": "country",
         "measure_types": [
           "IMPORT_CONTROL"
@@ -974,7 +1083,7 @@
             "hs_code": "7208000000",
             "market": "EU",
             "origin_code": "KP",
-            "origin_name": "KP",
+            "origin_name": "North Korea",
             "origin_code_type": "country",
             "measure_type": "IMPORT_CONTROL",
             "rate_basis": "import_control",
@@ -1001,7 +1110,7 @@
       },
       {
         "origin_code": "KR",
-        "origin_name": "KR",
+        "origin_name": "Korea, Republic of (South Korea)",
         "origin_code_type": "country",
         "measure_types": [
           "PREFERENTIAL",
@@ -1012,7 +1121,7 @@
             "hs_code": "7208510000",
             "market": "EU",
             "origin_code": "KR",
-            "origin_name": "KR",
+            "origin_name": "Korea, Republic of (South Korea)",
             "origin_code_type": "country",
             "measure_type": "TARIFF_QUOTA",
             "rate_basis": "tariff_quota",
@@ -1039,7 +1148,7 @@
             "hs_code": "7200000000",
             "market": "EU",
             "origin_code": "KR",
-            "origin_name": "KR",
+            "origin_name": "Korea, Republic of (South Korea)",
             "origin_code_type": "country",
             "measure_type": "PREFERENTIAL",
             "rate_basis": "bilateral_preference",
@@ -1214,7 +1323,7 @@
       },
       {
         "origin_code": "RU",
-        "origin_name": "RU",
+        "origin_name": "Russian Federation",
         "origin_code_type": "country",
         "measure_types": [
           "IMPORT_CONTROL"
@@ -1224,7 +1333,7 @@
             "hs_code": "7208510000",
             "market": "EU",
             "origin_code": "RU",
-            "origin_name": "RU",
+            "origin_name": "Russian Federation",
             "origin_code_type": "country",
             "measure_type": "IMPORT_CONTROL",
             "rate_basis": "import_control",
@@ -1325,7 +1434,7 @@
       },
       {
         "origin_code": "TR",
-        "origin_name": "TR",
+        "origin_name": "Türkiye",
         "origin_code_type": "country",
         "measure_types": [
           "TARIFF_QUOTA"
@@ -1335,7 +1444,7 @@
             "hs_code": "7208510000",
             "market": "EU",
             "origin_code": "TR",
-            "origin_name": "TR",
+            "origin_name": "Türkiye",
             "origin_code_type": "country",
             "measure_type": "TARIFF_QUOTA",
             "rate_basis": "tariff_quota",
@@ -1362,7 +1471,7 @@
       },
       {
         "origin_code": "UA",
-        "origin_name": "UA",
+        "origin_name": "Ukraine",
         "origin_code_type": "country",
         "measure_types": [
           "IMPORT_CONTROL"
@@ -1372,7 +1481,7 @@
             "hs_code": "7200000000",
             "market": "EU",
             "origin_code": "UA",
-            "origin_name": "UA",
+            "origin_name": "Ukraine",
             "origin_code_type": "country",
             "measure_type": "IMPORT_CONTROL",
             "rate_basis": "import_control",
@@ -1399,7 +1508,7 @@
             "hs_code": "7200000000",
             "market": "EU",
             "origin_code": "UA",
-            "origin_name": "UA",
+            "origin_name": "Ukraine",
             "origin_code_type": "country",
             "measure_type": "IMPORT_CONTROL",
             "rate_basis": "import_control",
@@ -1570,7 +1679,7 @@
           "hs_code": "7208510000",
           "market": "EU",
           "origin_code": "RU",
-          "origin_name": "RU",
+          "origin_name": "Russian Federation",
           "origin_code_type": "country",
           "measure_type": "IMPORT_CONTROL",
           "rate_basis": "import_control",
@@ -1597,7 +1706,7 @@
           "hs_code": "7208000000",
           "market": "EU",
           "origin_code": "KP",
-          "origin_name": "KP",
+          "origin_name": "North Korea",
           "origin_code_type": "country",
           "measure_type": "IMPORT_CONTROL",
           "rate_basis": "import_control",
@@ -1624,7 +1733,7 @@
           "hs_code": "7200000000",
           "market": "EU",
           "origin_code": "UA",
-          "origin_name": "UA",
+          "origin_name": "Ukraine",
           "origin_code_type": "country",
           "measure_type": "IMPORT_CONTROL",
           "rate_basis": "import_control",
@@ -1651,7 +1760,7 @@
           "hs_code": "7200000000",
           "market": "EU",
           "origin_code": "UA",
-          "origin_name": "UA",
+          "origin_name": "Ukraine",
           "origin_code_type": "country",
           "measure_type": "IMPORT_CONTROL",
           "rate_basis": "import_control",
@@ -1736,7 +1845,7 @@
           "hs_code": "7208510000",
           "market": "EU",
           "origin_code": "KR",
-          "origin_name": "KR",
+          "origin_name": "Korea, Republic of (South Korea)",
           "origin_code_type": "country",
           "measure_type": "TARIFF_QUOTA",
           "rate_basis": "tariff_quota",
@@ -1763,7 +1872,7 @@
           "hs_code": "7208510000",
           "market": "EU",
           "origin_code": "ID",
-          "origin_name": "ID",
+          "origin_name": "Indonesia",
           "origin_code_type": "country",
           "measure_type": "TARIFF_QUOTA",
           "rate_basis": "tariff_quota",
@@ -1790,7 +1899,7 @@
           "hs_code": "7208510000",
           "market": "EU",
           "origin_code": "IN",
-          "origin_name": "IN",
+          "origin_name": "India",
           "origin_code_type": "country",
           "measure_type": "TARIFF_QUOTA",
           "rate_basis": "tariff_quota",
@@ -1817,7 +1926,7 @@
           "hs_code": "7208510000",
           "market": "EU",
           "origin_code": "TR",
-          "origin_name": "TR",
+          "origin_name": "Türkiye",
           "origin_code_type": "country",
           "measure_type": "TARIFF_QUOTA",
           "rate_basis": "tariff_quota",
@@ -2336,7 +2445,7 @@
           "hs_code": "7200000000",
           "market": "EU",
           "origin_code": "KR",
-          "origin_name": "KR",
+          "origin_name": "Korea, Republic of (South Korea)",
           "origin_code_type": "country",
           "measure_type": "PREFERENTIAL",
           "rate_basis": "bilateral_preference",
@@ -2498,7 +2607,7 @@
           "hs_code": "7200000000",
           "market": "EU",
           "origin_code": "GB",
-          "origin_name": "GB",
+          "origin_name": "United Kingdom",
           "origin_code_type": "country",
           "measure_type": "PREFERENTIAL",
           "rate_basis": "bilateral_preference",
@@ -2605,141 +2714,6 @@
           "order_no": null,
           "duty_text": "Cond:  Y cert: L-139 (29):; Y cert: Y-824 (29):; Y cert: Y-878 (29):; Y cert: Y-859 (29):; Y cert: L-143 (29):; Y (09):"
         }
-      },
-      {
-        "hs_code": "7208510000",
-        "market": "EU",
-        "origin_code": "RU",
-        "origin_name": "RU",
-        "origin_code_type": "country",
-        "measure_type": "IMPORT_CONTROL",
-        "rate_basis": "import_control",
-        "duty_rate": null,
-        "duty_amount": null,
-        "rate_specific_unit": null,
-        "valid_from": "2023-12-19",
-        "valid_to": "2026-12-31",
-        "source": "TARIC",
-        "ingested_at": "2026-03-29T02:19:46.904006+00:00",
-        "details": {
-          "measure_type_text": "Import control",
-          "measure_type_code": "763",
-          "origin_text": "Russian Federation",
-          "origin_code_raw": "RU",
-          "legal_base": "Regulation 0833/14",
-          "regulation": null,
-          "additional_code": null,
-          "order_no": null,
-          "duty_text": "Cond:  Y cert: L-139 (29):; Y cert: L-143 (29):; Y cert: Y-859 (29):; Y (09):"
-        }
-      },
-      {
-        "hs_code": "7208510000",
-        "market": "EU",
-        "origin_code": "5005",
-        "origin_name": "5005",
-        "origin_code_type": "safeguard",
-        "measure_type": "SAFEGUARD",
-        "rate_basis": "safeguard",
-        "duty_rate": 25,
-        "duty_amount": null,
-        "rate_specific_unit": null,
-        "valid_from": "2025-04-01",
-        "valid_to": "2026-06-30",
-        "source": "TARIC",
-        "ingested_at": "2026-03-29T02:19:46.897504+00:00",
-        "details": {
-          "measure_type_text": "Additional duties (safeguard)",
-          "measure_type_code": "696",
-          "origin_text": "Countries subject to safeguard measures",
-          "origin_code_raw": "5005",
-          "legal_base": "Regulation 0159/19",
-          "regulation": null,
-          "additional_code": null,
-          "order_no": null,
-          "duty_text": "25.000 %"
-        }
-      },
-      {
-        "hs_code": "7208000000",
-        "market": "EU",
-        "origin_code": "KP",
-        "origin_name": "KP",
-        "origin_code_type": "country",
-        "measure_type": "IMPORT_CONTROL",
-        "rate_basis": "import_control",
-        "duty_rate": null,
-        "duty_amount": null,
-        "rate_specific_unit": null,
-        "valid_from": "2017-09-16",
-        "valid_to": null,
-        "source": "TARIC",
-        "ingested_at": "2026-03-29T02:19:43.672418+00:00",
-        "details": {
-          "measure_type_text": "Import control on restricted goods and technologies",
-          "measure_type_code": "711",
-          "origin_text": "North Korea (Democratic People’s Republic of Korea)",
-          "origin_code_raw": "KP",
-          "legal_base": "Regulation 1548/17",
-          "regulation": null,
-          "additional_code": null,
-          "order_no": null,
-          "duty_text": "Cond:  Y cert: Y-959 (29):; Y (09):"
-        }
-      },
-      {
-        "hs_code": "7200000000",
-        "market": "EU",
-        "origin_code": "UA",
-        "origin_name": "UA",
-        "origin_code_type": "country",
-        "measure_type": "IMPORT_CONTROL",
-        "rate_basis": "import_control",
-        "duty_rate": null,
-        "duty_amount": null,
-        "rate_specific_unit": null,
-        "valid_from": "2025-01-01",
-        "valid_to": null,
-        "source": "TARIC",
-        "ingested_at": "2026-03-29T02:19:41.732025+00:00",
-        "details": {
-          "measure_type_text": "Import control",
-          "measure_type_code": "760",
-          "origin_text": "Ukraine",
-          "origin_code_raw": "UA",
-          "legal_base": "Regulation 0692/14",
-          "regulation": null,
-          "additional_code": null,
-          "order_no": null,
-          "duty_text": "Cond:  Y cert: Y-997 (26):; Y cert: U-078 (26):; Y cert: U-079 (26):; Y cert: N-954 (26):; Y cert: U-045 (26):; Y (06):"
-        }
-      },
-      {
-        "hs_code": "7200000000",
-        "market": "EU",
-        "origin_code": "UA",
-        "origin_name": "UA",
-        "origin_code_type": "country",
-        "measure_type": "IMPORT_CONTROL",
-        "rate_basis": "import_control",
-        "duty_rate": null,
-        "duty_amount": null,
-        "rate_specific_unit": null,
-        "valid_from": "2025-01-01",
-        "valid_to": null,
-        "source": "TARIC",
-        "ingested_at": "2026-03-29T02:19:41.725202+00:00",
-        "details": {
-          "measure_type_text": "Import control",
-          "measure_type_code": "762",
-          "origin_text": "Ukraine",
-          "origin_code_raw": "UA",
-          "legal_base": "Regulation 0263/22",
-          "regulation": null,
-          "additional_code": null,
-          "order_no": null,
-          "duty_text": "Cond:  Y cert: Y-984 (29):; Y cert: N-954 (29):; Y cert: U-045 (29):; Y cert: U-078 (29):; Y cert: U-079 (29):; Y (09):"
-        }
       }
     ],
     "duty": {
@@ -2763,10 +2737,10 @@
       "anti_dumping_specific": false,
       "siv_bands": null,
       "trade_agreement": null,
-      "financial_charge": true,
+      "financial_charge": false,
       "source": "TARIC",
       "origin_code": "GB",
-      "origin_name": "GB",
+      "origin_name": "United Kingdom",
       "rate_basis": "bilateral_preference",
       "conditions": [],
       "human_readable": "0%"
@@ -2780,16 +2754,19 @@
     },
     "calculated": {
       "duty_on_goods_value_pct": 0,
-      "effective_duty_rate": null,
+      "effective_duty_rate": 0,
       "effective_duty_amount": null,
-      "effective_duty_unit": null,
+      "effective_duty_unit": "%",
       "variable_rate_evaluated": false,
       "entry_price_component": false,
       "vat_applies_to": "goods_value + duty",
       "note": "VAT is assessed on CIF value + customs duty",
-      "has_mfn_via_walkup": false,
-      "mfn_duty": null,
-      "warnings": []
+      "has_mfn_via_walkup": true,
+      "mfn_duty": "0.000 %",
+      "warnings": [
+        "GB has no more specific EU duty measure at the 10-digit level. Using MFN (ERGA OMNES 1011) from a parent heading/chapter.",
+        "The UK is a third country to the EU. Standard third-country (MFN) duty applies unless a specific preferential measure exists for this HS code."
+      ]
     },
     "data_freshness": {
       "duty_last_updated": "2026-03-29",
@@ -2848,9 +2825,5 @@
     ],
     "supplementary_units": [],
     "price_measures": []
-  },
-  "meta": {
-    "request_id": "c6163414-9bed-4549-9e99-3d1c75361092",
-    "timestamp": "2026-03-29T02:30:42.740432+00:00"
   }
 }
