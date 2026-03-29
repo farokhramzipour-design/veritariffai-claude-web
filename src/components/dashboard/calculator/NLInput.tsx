@@ -10,12 +10,13 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-export const NLInput = () => {
+export const NLInput = ({ disabled }: { disabled?: boolean }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { setStep1, updateLine } = useCalculatorStore();
 
   const handleAutofill = async () => {
+    if (disabled) return;
     if (!input.trim()) return;
 
     setIsLoading(true);
@@ -45,6 +46,7 @@ export const NLInput = () => {
   };
 
   const handleClear = () => {
+    if (disabled) return;
     setInput('');
   };
 
@@ -58,14 +60,14 @@ export const NLInput = () => {
         placeholder="e.g. &quot;leather shoes from Birmingham to Paris, £2,000&quot;"
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        disabled={isLoading}
+        disabled={isLoading || disabled}
       />
       <div className="mt-4 flex items-center gap-4">
         <button 
           onClick={handleAutofill}
-          disabled={isLoading || !input.trim()}
+          disabled={isLoading || disabled || !input.trim()}
           className={`flex items-center gap-2 px-5 py-2.5 bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.2)] rounded text-[var(--cyan)] font-display text-xs font-bold tracking-[0.08em] transition-colors
-            ${isLoading || !input.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[rgba(0,229,255,0.14)] hover:border-[var(--cyan)]'}
+            ${isLoading || disabled || !input.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[rgba(0,229,255,0.14)] hover:border-[var(--cyan)]'}
           `}
         >
           {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -73,7 +75,7 @@ export const NLInput = () => {
         </button>
         <button 
           onClick={handleClear}
-          disabled={isLoading || !input}
+          disabled={isLoading || disabled || !input}
           className="flex items-center gap-2 text-xs text-[var(--muted2)] hover:text-[var(--text)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <X size={14} />

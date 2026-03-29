@@ -11,15 +11,17 @@ interface CurrencySelectProps {
   label?: string;
   value?: string; // Currency code
   onValueChange?: (code: string) => void;
+  disabled?: boolean;
 }
 
-export const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, onValueChange }) => {
+export const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, onValueChange, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const selectedCurrency = currencies.find(c => c.code === value);
 
   const handleSelect = (code: string) => {
+    if (disabled) return;
     onValueChange?.(code);
     setIsOpen(false);
   };
@@ -44,7 +46,8 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, on
           ${isOpen ? 'border-[var(--cyan)] shadow-[0_0_0_3px_rgba(0,229,255,0.07)]' : 'border-[var(--border)]'}
           focus:border-[var(--cyan)] focus:shadow-[0_0_0_3px_rgba(0,229,255,0.07)] focus:outline-none
         `}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => (!disabled ? setIsOpen(!isOpen) : undefined)}
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -54,7 +57,7 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({ label, value, on
         <ChevronDown size={16} className={`text-[var(--muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-[var(--s2)] border border-[var(--border2)] rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
           <ul role="listbox">
             {currencies.map(currency => (

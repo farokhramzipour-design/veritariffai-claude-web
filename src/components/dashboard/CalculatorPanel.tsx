@@ -4,7 +4,15 @@ import { FieldGrid } from './calculator/FieldGrid';
 import { AdvancedOptions } from './calculator/AdvancedOptions';
 import { CalculateButton } from './calculator/CalculateButton';
 
-export const CalculatorPanel = ({ onCalculate, isLoading }: { onCalculate?: () => void, isLoading?: boolean }) => {
+export const CalculatorPanel = ({
+  onCalculate,
+  isLoading,
+  isLocked,
+}: {
+  onCalculate?: () => void;
+  isLoading?: boolean;
+  isLocked?: boolean;
+}) => {
   return (
     <div className="bg-[var(--s1)] border border-[var(--border)] rounded-lg p-8 relative">
       {/* Corner Accents */}
@@ -25,10 +33,10 @@ export const CalculatorPanel = ({ onCalculate, isLoading }: { onCalculate?: () =
         </button>
       </div>
 
-      <NLInput />
-      <FieldGrid />
-      <AdvancedOptions />
-      <CalculateButton onClick={onCalculate} isLoading={isLoading} />
+      <NLInput disabled={!!isLocked} />
+      <FieldGrid disabled={!!isLocked} />
+      <AdvancedOptions disabled={!!isLocked} />
+      <CalculateButton onClick={onCalculate} isLoading={isLoading} disabled={!!isLocked} />
     </div>
   );
 };

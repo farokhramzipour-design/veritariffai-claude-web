@@ -68,9 +68,10 @@ interface CountrySelectProps {
   label?: string;
   value?: string;
   onValueChange?: (code: string) => void;
+  disabled?: boolean;
 }
 
-export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onValueChange }) => {
+export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onValueChange, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -83,6 +84,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onValueChan
   );
 
   const handleSelect = (countryCode: string) => {
+    if (disabled) return;
     onValueChange?.(countryCode);
     setIsOpen(false);
     setSearchTerm('');
@@ -107,7 +109,8 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onValueChan
           ${isOpen ? 'border-[var(--cyan)] shadow-[0_0_0_3px_rgba(0,229,255,0.07)]' : 'border-[var(--border)]'}
           focus:border-[var(--cyan)] focus:outline-none
         `}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => (!disabled ? setIsOpen(!isOpen) : undefined)}
+        disabled={disabled}
       >
         <span className="flex items-center gap-2">
           {selectedCountry ? (
@@ -119,7 +122,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onValueChan
         <ChevronDown size={16} className={`text-[var(--muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-50 mt-1 w-full bg-[var(--s2)] border border-[var(--border2)] rounded-md shadow-lg max-h-64 overflow-hidden flex flex-col">
           <input
             type="text"

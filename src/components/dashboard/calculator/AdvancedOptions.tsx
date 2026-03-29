@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ChevronRight, Shield } from 'lucide-react';
 import { useCalculatorStore } from '@/lib/stores/calculatorStore';
 
-const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) => (
-  <label className="flex items-center gap-2 cursor-pointer">
-    <input type="checkbox" className="hidden" checked={checked} onChange={onChange} />
+const Checkbox = ({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: () => void; disabled?: boolean }) => (
+  <label className={`flex items-center gap-2 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+    <input type="checkbox" className="hidden" checked={checked} onChange={onChange} disabled={disabled} />
     <div className={`w-4 h-4 rounded-sm border transition-all flex items-center justify-center
       ${checked ? 'bg-[var(--cyan)] border-[var(--cyan)]' : 'bg-[var(--bg)] border-[var(--border)]'}
     `}>
@@ -14,7 +14,7 @@ const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolea
   </label>
 );
 
-export const AdvancedOptions = () => {
+export const AdvancedOptions = ({ disabled }: { disabled?: boolean }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [antiDumping, setAntiDumping] = useState(false);
   const [exciseDuty, setExciseDuty] = useState(false);
@@ -51,7 +51,8 @@ export const AdvancedOptions = () => {
     <div className="mb-8">
       <button
         className="w-full flex items-center justify-between py-3 px-4 bg-[var(--s1)] border border-[var(--border)] rounded-md text-[var(--text)] hover:bg-[var(--s2)] transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => (!disabled ? setIsExpanded(!isExpanded) : undefined)}
+        disabled={disabled}
       >
         <div className="flex items-center gap-2">
           <ChevronRight size={16} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
@@ -78,6 +79,7 @@ export const AdvancedOptions = () => {
                   }
                   className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:shadow-[0_0_0_3px_rgba(0,229,255,0.07)] focus:outline-none"
                   placeholder="e.g., 100.00"
+                  disabled={disabled}
                 />
                 <select
                   value={insuranceCurrency}
@@ -85,6 +87,7 @@ export const AdvancedOptions = () => {
                     setAdvanced({ insuranceCost: insuranceAmount ? { amount: insuranceAmount, currency: e.target.value } : null })
                   }
                   className="bg-[var(--bg)] border border-[var(--border)] rounded-md px-2 py-2.5 font-mono text-xs text-[var(--muted2)] focus:border-[var(--cyan)] focus:outline-none"
+                  disabled={disabled}
                 >
                   <option>GBP</option>
                   <option>EUR</option>
@@ -105,6 +108,7 @@ export const AdvancedOptions = () => {
                   }
                   className="flex-1 bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:shadow-[0_0_0_3px_rgba(0,229,255,0.07)] focus:outline-none"
                   placeholder="e.g., 50.00"
+                  disabled={disabled}
                 />
                 <select
                   value={freightCurrency}
@@ -112,6 +116,7 @@ export const AdvancedOptions = () => {
                     setAdvanced({ freightCost: freightAmount ? { amount: freightAmount, currency: e.target.value } : null })
                   }
                   className="bg-[var(--bg)] border border-[var(--border)] rounded-md px-2 py-2.5 font-mono text-xs text-[var(--muted2)] focus:border-[var(--cyan)] focus:outline-none"
+                  disabled={disabled}
                 >
                   <option>GBP</option>
                   <option>EUR</option>
@@ -125,21 +130,25 @@ export const AdvancedOptions = () => {
               label="Include anti-dumping check"
               checked={antiDumping}
               onChange={() => setAntiDumping(!antiDumping)}
+              disabled={disabled}
             />
             <Checkbox
               label="Include excise duty (alcohol/tobacco/energy)"
               checked={exciseDuty}
               onChange={() => setExciseDuty(!exciseDuty)}
+              disabled={disabled}
             />
             <Checkbox
               label="Goods are of UK origin (for TCA RoO preference)"
               checked={ukOrigin}
               onChange={() => setUkOrigin(!ukOrigin)}
+              disabled={disabled}
             />
             <Checkbox
               label="Run sanctions screening (OFAC / UK / EU lists)"
               checked={sanctionsCheck}
               onChange={() => setSanctions({ sanctionsCheck: !sanctionsCheck })}
+              disabled={disabled}
             />
           </div>
 
@@ -160,6 +169,7 @@ export const AdvancedOptions = () => {
                     onChange={(e) => setSanctions({ exporterName: e.target.value })}
                     placeholder="e.g. Acme Steel Ltd"
                     className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+                    disabled={disabled}
                   />
                 </div>
                 <div>
@@ -172,6 +182,7 @@ export const AdvancedOptions = () => {
                     onChange={(e) => setSanctions({ importerName: e.target.value })}
                     placeholder="e.g. Europa Metals GmbH"
                     className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] focus:border-[var(--cyan)] focus:outline-none"
+                    disabled={disabled}
                   />
                 </div>
               </div>

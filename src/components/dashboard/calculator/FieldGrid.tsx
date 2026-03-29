@@ -18,12 +18,14 @@ const TextInput = ({
   onChange,
   isAiFilled,
   type = 'text',
+  disabled,
 }: {
   placeholder?: string;
   value?: string;
   onChange?: (val: string) => void;
   isAiFilled?: boolean;
   type?: string;
+  disabled?: boolean;
 }) => (
   <div className="relative">
     <input
@@ -35,6 +37,7 @@ const TextInput = ({
       placeholder={placeholder}
       value={value ?? ''}
       onChange={(e) => onChange?.(e.target.value)}
+      disabled={disabled}
     />
     {isAiFilled && (
       <div className="absolute top-[-8px] right-2 bg-[rgba(0,229,255,0.1)] border border-[rgba(0,229,255,0.2)] text-[var(--cyan)] font-mono text-[9px] tracking-[0.1em] px-1.5 py-0.5 rounded">
@@ -44,7 +47,7 @@ const TextInput = ({
   </div>
 );
 
-export const FieldGrid = () => {
+export const FieldGrid = ({ disabled }: { disabled?: boolean }) => {
   const {
     originCountry,
     destinationCountry,
@@ -65,6 +68,7 @@ export const FieldGrid = () => {
           <CountrySelect
             value={originCountry ?? ''}
             onValueChange={(val) => setStep1({ originCountry: val })}
+            disabled={disabled}
           />
         </div>
         <div>
@@ -72,6 +76,7 @@ export const FieldGrid = () => {
           <CountrySelect
             value={destinationCountry ?? ''}
             onValueChange={(val) => setStep1({ destinationCountry: val })}
+            disabled={disabled}
           />
         </div>
         <div>
@@ -79,6 +84,7 @@ export const FieldGrid = () => {
           <IncotermsSelect
             value={incoterm ?? ''}
             onValueChange={(val) => setStep1({ incoterm: val })}
+            disabled={disabled}
           />
         </div>
       </div>
@@ -91,7 +97,8 @@ export const FieldGrid = () => {
           </span>
           <button
             onClick={addLine}
-            className="flex items-center gap-1.5 text-xs text-[var(--cyan)] hover:opacity-80 transition-opacity font-bold"
+            disabled={disabled}
+            className="flex items-center gap-1.5 text-xs text-[var(--cyan)] hover:opacity-80 transition-opacity font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={14} /> Add Line
           </button>
@@ -106,7 +113,8 @@ export const FieldGrid = () => {
               {lines.length > 1 && (
                 <button
                   onClick={() => removeLine(i)}
-                  className="absolute top-3 right-3 text-[var(--muted2)] hover:text-red-400 transition-colors"
+                  disabled={disabled}
+                  className="absolute top-3 right-3 text-[var(--muted2)] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Remove line"
                 >
                   <Trash2 size={14} />
@@ -121,6 +129,7 @@ export const FieldGrid = () => {
                     placeholder="e.g., Hot-rolled steel coil"
                     value={line.description}
                     onChange={(val) => updateLine(i, { description: val })}
+                    disabled={disabled}
                   />
                 </div>
                 <div>
@@ -131,6 +140,7 @@ export const FieldGrid = () => {
                     onValueChange={(val) => updateLine(i, { hs_code: val })}
                     confidence={line.confidence}
                     description={line.hsDescription}
+                    disabled={disabled}
                   />
                 </div>
                 <div>
@@ -139,6 +149,7 @@ export const FieldGrid = () => {
                     placeholder="e.g., 5,000"
                     value={(() => { const n = parseFloat((line.value ?? '').replace(/,/g, '')); return isNaN(n) ? (line.value ?? '') : n.toLocaleString('en-GB', { maximumFractionDigits: 2 }); })()}
                     onChange={(val) => updateLine(i, { value: val.replace(/,/g, '') })}
+                    disabled={disabled}
                   />
                 </div>
                 <div>
@@ -146,6 +157,7 @@ export const FieldGrid = () => {
                   <CurrencySelect
                     value={line.currency ?? 'GBP'}
                     onValueChange={(val) => updateLine(i, { currency: val })}
+                    disabled={disabled}
                   />
                 </div>
               </div>

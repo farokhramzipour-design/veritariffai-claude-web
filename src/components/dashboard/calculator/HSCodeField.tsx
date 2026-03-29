@@ -11,6 +11,7 @@ interface HSCodeFieldProps {
   confidence?: number;
   description?: string;
   onValueChange?: (value: string) => void;
+  disabled?: boolean;
 }
 
 interface HSResult {
@@ -32,6 +33,7 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
   confidence,
   description,
   onValueChange,
+  disabled,
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +43,7 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
   const [searchError, setSearchError] = useState('');
 
   const handleSearch = async () => {
+    if (disabled) return;
     if (!searchQuery.trim()) return;
     setSearching(true);
     setSearchError('');
@@ -64,6 +67,7 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
   };
 
   const handleSelect = (result: HSResult) => {
+    if (disabled) return;
     const code = result.hs_code ?? result.code ?? '';
     onValueChange?.(code);
     setIsDrawerOpen(false);
@@ -78,6 +82,7 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
           type="text"
           value={value ?? ''}
           onChange={(e) => onValueChange?.(e.target.value)}
+          disabled={disabled}
           className={`flex-grow bg-[var(--bg)] border rounded-md px-3.5 py-2.5 font-mono text-sm text-[var(--text)] transition-all
             ${isAiFilled ? 'border-[rgba(0,229,255,0.35)] bg-[rgba(0,229,255,0.03)]' : 'border-[var(--border)]'}
             focus:border-[var(--cyan)] focus:shadow-[0_0_0_3px_rgba(0,229,255,0.07)] focus:outline-none
@@ -85,8 +90,9 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
           placeholder="e.g., 7208510000"
         />
         <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="p-2 rounded-md bg-[var(--border2)] text-[var(--muted2)] hover:text-[var(--cyan)] hover:bg-[rgba(0,229,255,0.08)] transition-colors"
+          onClick={() => (!disabled ? setIsDrawerOpen(true) : undefined)}
+          disabled={disabled}
+          className="p-2 rounded-md bg-[var(--border2)] text-[var(--muted2)] hover:text-[var(--cyan)] hover:bg-[rgba(0,229,255,0.08)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Look up HS code"
         >
           <Search size={18} />
@@ -129,7 +135,7 @@ export const HSCodeField: React.FC<HSCodeFieldProps> = ({
       )}
 
       {/* HS Code Lookup Drawer */}
-      {isDrawerOpen && (
+      {isDrawerOpen && !disabled && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setIsDrawerOpen(false)}>
           <div
             className="bg-[var(--s1)] border border-[var(--border)] rounded-xl shadow-2xl w-full max-w-lg"

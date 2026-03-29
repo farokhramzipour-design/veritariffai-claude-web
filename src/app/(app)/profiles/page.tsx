@@ -142,7 +142,7 @@ export default function ProfilesPage() {
       });
     });
 
-    router.push("/calculator");
+    router.push("/calculator?start=1");
   };
 
   const handleCreate = async () => {

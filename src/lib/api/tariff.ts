@@ -20,6 +20,8 @@ export const tariffApi = {
     apiClient.get('/api/v1/duty-rate/lookup', { params }),
 
   importAnalysis: (body: {
+    profile_name?: string;
+    profile_description?: string;
     product_description: string;
     origin_country: string;
     destination_country: string;

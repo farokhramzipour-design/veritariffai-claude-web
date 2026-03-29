@@ -2,7 +2,15 @@ import { Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
-export const CalculateButton = ({ onClick, isLoading }: { onClick?: () => void, isLoading?: boolean }) => {
+export const CalculateButton = ({
+  onClick,
+  isLoading,
+  disabled,
+}: {
+  onClick?: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+}) => {
   const [loadingStep, setLoadingStep] = useState(0);
 
   useEffect(() => {
@@ -28,12 +36,14 @@ export const CalculateButton = ({ onClick, isLoading }: { onClick?: () => void, 
   return (
     <div className="w-full">
       <button 
-        onClick={!isLoading ? onClick : undefined}
-        disabled={isLoading}
+        onClick={!isLoading && !disabled ? onClick : undefined}
+        disabled={isLoading || disabled}
         className={`w-full px-8 py-3.5 border rounded-md font-display text-sm font-bold tracking-[0.08em] transition-all duration-200 ease-in-out
           ${isLoading 
             ? 'bg-[rgba(0,229,255,0.06)] border-[rgba(0,229,255,0.1)] text-[var(--muted2)] cursor-wait' 
-            : 'bg-gradient-to-r from-[rgba(0,229,255,0.12)] to-[rgba(0,229,255,0.06)] border-[rgba(0,229,255,0.3)] text-[var(--cyan)] hover:bg-[rgba(0,229,255,0.18)] hover:border-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.15)] hover:-translate-y-px cursor-pointer'
+            : disabled
+              ? 'bg-[rgba(0,229,255,0.06)] border-[rgba(0,229,255,0.1)] text-[var(--muted2)] cursor-not-allowed'
+              : 'bg-gradient-to-r from-[rgba(0,229,255,0.12)] to-[rgba(0,229,255,0.06)] border-[rgba(0,229,255,0.3)] text-[var(--cyan)] hover:bg-[rgba(0,229,255,0.18)] hover:border-[var(--cyan)] hover:shadow-[0_0_24px_rgba(0,229,255,0.15)] hover:-translate-y-px cursor-pointer'
           }
         `}
       >
