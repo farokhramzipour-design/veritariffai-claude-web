@@ -3,7 +3,6 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/lib/stores/authStore';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -13,13 +12,14 @@ export default function AuthCallbackPage() {
     const token = searchParams.get('token'); // Get token from URL query parameter
 
     if (token) {
-      useAuthStore.getState().setToken(token).finally(() => {
-        router.replace('/dashboard');
-      });
+      document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+      // Redirect to the dashboard
+      router.push('/dashboard');
     } else {
       // If no token is found in the URL, redirect to login with an error
       console.error('Authentication failed: No token found in callback URL.');
-      router.replace('/login?error=authentication_failed');
+      router.push('/login?error=authentication_failed');
     }
   }, [router, searchParams]);
 
