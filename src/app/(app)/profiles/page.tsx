@@ -16,9 +16,9 @@ import {
   Zap,
 } from "lucide-react";
 import { calculationsApi } from "@/lib/api/calculations";
-import { useShipmentStore } from "@/lib/stores/shipmentStore";
 
 const AI_RESULT_KEY = "veritariff_ai_result";
+const WORKFLOW_SEED_KEY = "veritariff_workflow_seed";
 
 interface Profile {
   id?: string;
@@ -50,7 +50,6 @@ function formatDate(raw: string | undefined) {
 
 export default function ProfilesPage() {
   const router = useRouter();
-  const { resetShipment, setStep, updateCDS, updateClassification, updateSanctions, updateGermanCustoms } = useShipmentStore();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,32 +132,29 @@ export default function ProfilesPage() {
     const sd = profile.shipment_data ?? {};
     const origin = typeof sd.origin === "string" ? sd.origin : "";
     const destination = typeof sd.destination === "string" ? sd.destination : "";
-    const incoterms = typeof (sd as any).incoterms === "string" ? String((sd as any).incoterms) : "";
 
     const firstLine = Array.isArray(profile.lines_data) ? (profile.lines_data[0] ?? {}) : {};
     const hsCode = typeof firstLine.hs_code === "string" ? firstLine.hs_code : "";
-    const fobValue = Number(firstLine.customs_value ?? 0) || 0;
-    const currency = typeof firstLine.currency === "string" ? firstLine.currency : "GBP";
+    const commodity =
+      (typeof firstLine.description === "string" && firstLine.description.trim())
+        ? (firstLine.description as string).trim()
+        : profile.name;
+    const corridorLeft = origin === "GB" ? "UK" : origin || "—";
+    const corridorRight = destination === "DE" ? "Germany" : destination || "—";
 
-    const freight = Number((sd as any).freight ?? (sd as any).freight_cost ?? 0) || 0;
-    const insurance = Number((sd as any).insurance ?? (sd as any).insurance_cost ?? 0) || 0;
-    const cifValue = fobValue + freight + insurance;
+    try {
+      sessionStorage.setItem(
+        WORKFLOW_SEED_KEY,
+        JSON.stringify({
+          corridor: `${corridorLeft} → ${corridorRight}`,
+          hsCode: hsCode || "—",
+          commodity: commodity || "—",
+          weight: "—",
+        }),
+      );
+    } catch {}
 
-    resetShipment();
-    setStep(1);
-
-    if (origin) updateSanctions({ declaredOriginCountry: origin });
-    if (hsCode) updateClassification({ commodityCode: hsCode, hsHeading: hsCode.slice(0, 4), classified: true });
-    updateCDS({
-      ...(origin ? { countryOfDispatch: origin } : {}),
-      ...(destination ? { countryOfDestination: destination } : {}),
-      ...(incoterms ? { deliveryTerms: incoterms } : {}),
-      invoiceCurrency: currency,
-      exportValueGBP: fobValue ? String(fobValue) : "",
-    });
-    if (cifValue) updateGermanCustoms({ cifValueEUR: String(cifValue) });
-
-    router.push("/shipment/new");
+    router.push("/shipment/workflow/VT-2026-0047");
   };
 
   const handleShowResult = (profile: Profile) => {

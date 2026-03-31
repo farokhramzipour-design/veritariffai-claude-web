@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 export type StepStatus = "complete" | "active" | "pending" | "blocked";
 
@@ -60,12 +60,18 @@ const STEP_TIMES: Record<number, string> = {
 
 export { STEP_TIMES };
 
+const WORKFLOW_SEED_KEY = "veritariff_workflow_seed";
+
 interface Props {
   shipmentId: string;
   children: React.ReactNode;
 }
 
 export function ShipmentProvider({ shipmentId, children }: Props) {
+  const [corridor, setCorridor] = useState("UK → Germany");
+  const [hsCode, setHsCode] = useState("7224 90 02 89");
+  const [commodity, setCommodity] = useState("42CrMo4 Alloy Steel Billets");
+  const [weight, setWeight] = useState("500t");
   const [currentStep, setCurrentStepState] = useState(1);
   const [stepStatuses, setStepStatuses] = useState<Record<number, StepStatus>>({
     1: "active",
@@ -138,14 +144,27 @@ export function ShipmentProvider({ shipmentId, children }: Props) {
     ]);
   }, []);
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(WORKFLOW_SEED_KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(WORKFLOW_SEED_KEY);
+      const seed = JSON.parse(raw) as Partial<Record<"corridor" | "hsCode" | "commodity" | "weight", unknown>>;
+      if (typeof seed.corridor === "string" && seed.corridor.trim()) setCorridor(seed.corridor);
+      if (typeof seed.hsCode === "string" && seed.hsCode.trim()) setHsCode(seed.hsCode);
+      if (typeof seed.commodity === "string" && seed.commodity.trim()) setCommodity(seed.commodity);
+      if (typeof seed.weight === "string" && seed.weight.trim()) setWeight(seed.weight);
+    } catch {}
+  }, []);
+
   return (
     <ShipmentContext.Provider
       value={{
         shipmentId,
-        corridor: "UK → Germany",
-        hsCode: "7224 90 02 89",
-        commodity: "42CrMo4 Alloy Steel Billets",
-        weight: "500t",
+        corridor,
+        hsCode,
+        commodity,
+        weight,
         currentStep,
         stepStatuses,
         hardBlock,

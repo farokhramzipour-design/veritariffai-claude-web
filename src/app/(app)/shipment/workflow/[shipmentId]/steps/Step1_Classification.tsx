@@ -6,7 +6,8 @@ import { useShipment } from "../components/ShipmentContext";
 import { StatusPill } from "../components/StatusPill";
 
 export function Step1_ClassificationSummary() {
-  const { setCurrentStep, setStepStatus } = useShipment();
+  const { setCurrentStep, setStepStatus, hsCode, commodity } = useShipment();
+  const hsRaw = (hsCode || "").replace(/\s+/g, "");
 
   const handleConfirm = () => {
     setStepStatus(1, "complete");
@@ -41,7 +42,7 @@ export function Step1_ClassificationSummary() {
               CLASSIFIED ✓
             </p>
             <p className="font-mono text-3xl font-bold text-[#F8F6F0] tracking-wider">
-              7224 90 02 89
+              {hsCode}
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(52,211,153,0.15)] border border-[rgba(52,211,153,0.3)] font-mono text-xs font-bold text-[#34d399]">
@@ -53,7 +54,7 @@ export function Step1_ClassificationSummary() {
           <div>
             <p className="font-mono text-[10px] text-[#8BA3C1] uppercase tracking-widest mb-1">Description</p>
             <p className="font-mono text-sm text-[#F8F6F0]">
-              Other alloy steel semi-finished — billets (42CrMo4)
+              {commodity}
             </p>
           </div>
           <div>
@@ -95,7 +96,7 @@ export function Step1_ClassificationSummary() {
           Edit classification
         </Link>
         <a
-          href="https://www.trade-tariff.service.gov.uk/commodities/7224900289"
+          href={`https://www.trade-tariff.service.gov.uk/commodities/${encodeURIComponent(hsRaw || "7224900289")}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 font-mono text-xs text-[#8BA3C1] hover:text-[#5BA3D9] transition-colors"
