@@ -89,9 +89,9 @@ export default function AppSidebar() {
           </Link>
           
           <Link
-            href="/shipment/workflow/VT-2026-0047"
+            href="/shipment/new"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${
-              pathname?.startsWith('/shipment/workflow')
+              pathname?.startsWith('/shipment')
                 ? 'bg-[rgba(0,229,255,0.1)] text-[var(--cyan)] border border-[rgba(0,229,255,0.2)]'
                 : 'text-[var(--muted2)] hover:text-[var(--text)] hover:bg-[var(--s2)]'
             }`}
