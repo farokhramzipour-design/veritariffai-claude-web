@@ -408,7 +408,7 @@ function Report({ data }: { data: ImportAnalysis }) {
 
           <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mt-6">
             <KeyValue label="HS Code" value={hsCodePretty} />
-            <KeyValue label="Customs Value" value={fmtMoney(customsValue, currency)} />
+            <KeyValue label="FOB Value" value={fmtMoney(customsValue, currency)} />
             <KeyValue label="Freight" value={fmtMoney(freight, currency)} />
             <KeyValue label="CIF Value" value={fmtMoney(cif, currency)} />
             <KeyValue label="Incoterms" value={incoterms ?? "—"} />
@@ -446,7 +446,7 @@ function Report({ data }: { data: ImportAnalysis }) {
             <Pill tone="cyan">{fmtCompactMoney(totalLanded, currency)}</Pill>
           </div>
           <div className="space-y-2">
-            <KeyValue label="Goods (Customs Value)" value={fmtMoney(customsValue, currency)} />
+            <KeyValue label="Goods (FOB Value)" value={fmtMoney(customsValue, currency)} />
             <KeyValue label="Freight" value={fmtMoney(freight, currency)} />
             <KeyValue label="Insurance" value={fmtMoney(insurance, currency)} />
             <div className="h-px bg-[var(--border)] my-2" />

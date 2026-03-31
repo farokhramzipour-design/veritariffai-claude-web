@@ -83,7 +83,7 @@ function unwrap(result: Record<string, unknown>): ApiData {
 function buildBreakdown(data: ApiData): CostItem[] {
   const t = data.totals ?? {};
   const rows: Array<{ label: string; rate: string; value?: MoneyAmount }> = [
-    { label: "CIF Value",        rate: "—",             value: t.customs_value },
+    { label: "FOB Value",        rate: "—",             value: t.customs_value },
     { label: "Import Duty",     rate: pct(undefined),  value: t.total_duty },
     { label: "Import VAT",      rate: pct(undefined),  value: t.total_vat },
     { label: "Excise Duty",     rate: "—",             value: t.total_excise },
@@ -157,7 +157,7 @@ const DUMMY_FACTORS: ConfidenceFactor[] = [
   { factor: "FX rate", contribution: 5, source: "LIVE 1h cache" },
 ];
 const DUMMY_BREAKDOWN: CostItem[] = [
-  { component: "CIF Value",       rate: "—",    amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
+  { component: "FOB Value",       rate: "—",    amount_gbp: 2000, amount_eur: 2340, amount_usd: 2600 },
   { component: "Import Duty",     rate: "4.5%", amount_gbp: 90,   amount_eur: 105.3,amount_usd: 117  },
   { component: "Import VAT",      rate: "20%",  amount_gbp: 418,  amount_eur: 489,  amount_usd: 543  },
 ];
@@ -377,7 +377,7 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
           <CardKV label="Route" value={`${input.origin_country ?? "—"} → ${input.destination_country ?? "—"}`} />
           <CardKV label="Incoterms" value={input.incoterms ?? "—"} />
-          <CardKV label="Customs Value" value={fmt(input.customs_value ?? undefined, input.currency ?? currency)} />
+              <CardKV label="FOB Value" value={fmt(input.customs_value ?? undefined, input.currency ?? currency)} />
           <CardKV label="Freight" value={input.freight == null ? "—" : fmt(input.freight, input.currency ?? currency)} />
           <CardKV label="Insurance" value={input.insurance == null ? "—" : fmt(input.insurance, input.currency ?? currency)} />
           <div className="md:col-span-2 p-3 bg-[var(--bg)] border border-[var(--border)] rounded">
@@ -453,7 +453,7 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
           <p className="font-mono text-[10px] text-[var(--muted2)] uppercase tracking-wider mb-2">Cost Breakdown</p>
           <div className="space-y-1.5">
             {[
-              { label: "CIF Value", val: fmt(calc.cif_value, currency), sub: calc.duty_basis },
+              { label: "CIF Value", val: fmt(calc.cif_value, currency), sub: "CIF value (FOB value + freight + insurance)" },
               { label: "Duty Amount", val: fmt(calc.duty_amount, currency) },
               { label: "VAT Amount", val: fmt(calc.vat_amount, currency), sub: calc.vat_basis },
             ].map(({ label, val, sub }) => (
@@ -559,7 +559,7 @@ export function AiResultPanel({ raw }: { raw: Record<string, unknown> }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
               <CardKVS label="Customs Duty Rate" value={dutyRate} sub={[dutyTypeLabel, dutyBasisLabel].filter(Boolean).join(" • ")} />
               <CardKVS label="VAT Rate" value={vatRate} sub={[vatType ? `${vatType} rate` : null, vatCountry ? `Country: ${vatCountry}` : null].filter(Boolean).join(" • ") || undefined} />
-              <CardKVS label="Duty Applies To" value="CIF value" sub="Goods value + freight + insurance (where applicable)" />
+              <CardKVS label="Duty Applies To" value="CIF value" sub="FOB value + freight + insurance" />
               <CardKVS label="VAT Applies To" value={vatAppliesTo ?? "CIF value + duty"} sub={calcNote ?? undefined} />
             </div>
 

@@ -144,7 +144,7 @@ export const FieldGrid = ({ disabled }: { disabled?: boolean }) => {
                   />
                 </div>
                 <div>
-                  <Label>Customs Value *</Label>
+                  <Label>FOB Value *</Label>
                   <TextInput
                     placeholder="e.g., 5,000"
                     value={(() => { const n = parseFloat((line.value ?? '').replace(/,/g, '')); return isNaN(n) ? (line.value ?? '') : n.toLocaleString('en-GB', { maximumFractionDigits: 2 }); })()}

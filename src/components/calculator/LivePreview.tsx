@@ -8,7 +8,7 @@ export default function LivePreview() {
           <span>$0.00</span>
         </div>
         <div className="flex justify-between">
-          <span>Est. Customs Value</span>
+          <span>Est. FOB Value</span>
           <span>£0.00</span>
         </div>
         <div className="flex justify-between">

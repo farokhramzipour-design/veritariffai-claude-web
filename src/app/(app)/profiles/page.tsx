@@ -16,11 +16,9 @@ import {
   Zap,
 } from "lucide-react";
 import { calculationsApi } from "@/lib/api/calculations";
-import { useCalculatorStore } from "@/lib/stores/calculatorStore";
+import { useShipmentStore } from "@/lib/stores/shipmentStore";
 
 const AI_RESULT_KEY = "veritariff_ai_result";
-const PROFILE_NAME_KEY = "veritariff_profile_name";
-const PROFILE_DESC_KEY = "veritariff_profile_description";
 
 interface Profile {
   id?: string;
@@ -52,7 +50,7 @@ function formatDate(raw: string | undefined) {
 
 export default function ProfilesPage() {
   const router = useRouter();
-  const { setStep1, updateLine, addLine, reset } = useCalculatorStore();
+  const { resetShipment, setStep, updateCDS, updateClassification, updateSanctions, updateGermanCustoms } = useShipmentStore();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,29 +130,35 @@ export default function ProfilesPage() {
   };
 
   const handleStartWorkflow = (profile: Profile) => {
-    reset();
     const sd = profile.shipment_data ?? {};
-    if (sd.origin) setStep1({ originCountry: sd.origin as string });
-    if (sd.destination) setStep1({ destinationCountry: sd.destination as string });
+    const origin = typeof sd.origin === "string" ? sd.origin : "";
+    const destination = typeof sd.destination === "string" ? sd.destination : "";
+    const incoterms = typeof (sd as any).incoterms === "string" ? String((sd as any).incoterms) : "";
 
-    const ld = profile.lines_data ?? [];
-    for (let i = 1; i < ld.length; i++) addLine();
-    ld.forEach((line, i) => {
-      updateLine(i, {
-        hs_code: (line.hs_code ?? "") as string,
-        description: (line.description ?? "") as string,
-        value: line.customs_value != null ? String(line.customs_value) : "",
-        currency: (line.currency ?? "GBP") as string,
-      });
+    const firstLine = Array.isArray(profile.lines_data) ? (profile.lines_data[0] ?? {}) : {};
+    const hsCode = typeof firstLine.hs_code === "string" ? firstLine.hs_code : "";
+    const fobValue = Number(firstLine.customs_value ?? 0) || 0;
+    const currency = typeof firstLine.currency === "string" ? firstLine.currency : "GBP";
+
+    const freight = Number((sd as any).freight ?? (sd as any).freight_cost ?? 0) || 0;
+    const insurance = Number((sd as any).insurance ?? (sd as any).insurance_cost ?? 0) || 0;
+    const cifValue = fobValue + freight + insurance;
+
+    resetShipment();
+    setStep(1);
+
+    if (origin) updateSanctions({ declaredOriginCountry: origin });
+    if (hsCode) updateClassification({ commodityCode: hsCode, hsHeading: hsCode.slice(0, 4), classified: true });
+    updateCDS({
+      ...(origin ? { countryOfDispatch: origin } : {}),
+      ...(destination ? { countryOfDestination: destination } : {}),
+      ...(incoterms ? { deliveryTerms: incoterms } : {}),
+      invoiceCurrency: currency,
+      exportValueGBP: fobValue ? String(fobValue) : "",
     });
+    if (cifValue) updateGermanCustoms({ cifValueEUR: String(cifValue) });
 
-    try {
-      sessionStorage.setItem(PROFILE_NAME_KEY, String(profile.name ?? ""));
-      sessionStorage.setItem(PROFILE_DESC_KEY, String(profile.description ?? ""));
-    } catch {
-      // ignore
-    }
-    router.push("/calculator");
+    router.push("/shipment/new");
   };
 
   const handleShowResult = (profile: Profile) => {

@@ -400,7 +400,7 @@ const CalculatorInner = () => {
     const firstLine = validLines[0];
     const customsValue = parseFloat(firstLine.value || "0") || 0;
     if (customsValue <= 0) {
-      setErrorMsg("Please enter a customs value for the first line item.");
+      setErrorMsg("Please enter a FOB value for the first line item.");
       return;
     }
 
